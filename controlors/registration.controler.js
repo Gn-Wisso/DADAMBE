@@ -140,6 +140,7 @@ const listRegistrations = async (req, res, next) => {
     }
 };
 // Programme Regestraions part
+// this wisso from the other side to fix your side errors ;)
 const listProgrammeRegistrations = async (req, res, next) => {
     try {
         const progId = req.body.progId;
