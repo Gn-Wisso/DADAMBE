@@ -18,9 +18,9 @@ module.exports = function (sequelize, DataTypes) {
 
     },);
     classe.associate = models => {
-        classe.belongsToMany(models.groupe, {
-            through: models.session,
-            foreignKey: 'classID', // Using the correct primary key name for program
+        classe.hasMany(models.session, {
+            foreignKey: 'classID',
+            allowNull: true
         });
     }
     return classe;

@@ -15,7 +15,7 @@ const GSRouter = require('./routers/studentgroupe.router');
 const connexionRouter = require('./routers/connexion.router');
 const userRouter = require('./routers/user.router');
 const schoolRouter = require('./routers/school.router');
-
+const sessionRouter = require('./routers/session.router');
 
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json({ strict: false, limit: "15mb" }));
@@ -42,6 +42,7 @@ app.use('/DADAM_Backend/gs', GSRouter);
 app.use('/DADAM_Backend/connexion', connexionRouter);
 app.use('/DADAM_Backend/user', userRouter);
 app.use('/DADAM_Backend/school', schoolRouter);
+app.use('/DADAM_Backend/session', sessionRouter);
 db.sequelize.sync().then(() => {
     const PORT = process.env.PORT || 8323;
     app.listen(PORT, () => {

@@ -11,5 +11,6 @@ routeGroupe.post("/add", jsonParser, groupeController.addGroupe);
 routeGroupe.delete("/remove/:id", groupeController.removeGroupe);
 routeGroupe.put("/update/:id", jsonParser, groupeController.updateGroupe);
 routeGroupe.post("/listProgrammeGroups", jsonParser, groupeController.listProgrammeGroups);
+routeGroupe.post("/listGroups", jsonParser, groupeController.listGroups);
 
 module.exports = routeGroupe;

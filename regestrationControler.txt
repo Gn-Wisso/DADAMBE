@@ -71,32 +71,6 @@ const removeRegistration = async (req, res, next) => {
                 code: 400
             });
         }
-        // get user groups in the programe 
-        const data = await db.registration.findByPk(registrationId);
-        const groups = await db.groupe.findAll({
-            where: {
-                progID: data.progID
-            },
-            include: {
-                model: db.student,
-                where: {
-                    ID_ROWID: data.StudentID
-                }
-            }
-        });
-
-        // destroy the studenGroup record
-        if (groups.length) {
-            const groupID = groups[0].ID_ROWID;
-            await db.studentGroup.destroy({
-                where: {
-                    GroupeID: groupID,
-                    StudentID: data.StudentID
-                }
-            })
-        }
-
-
 
         const deletedRegistration = await db.registration.destroy({
             where: { ID_ROWID: registrationId }
@@ -219,141 +193,7 @@ const listProgrammeRegistrations = async (req, res, next) => {
         });
     }
 };
-const updateRegistrationGroup = async (req, res, next) => {
-    try {
-        const { idRegestarion, idGroup, idStudent, idProg } = req.body.data;
 
-        // Check if the necessary data is provided
-        if (!idRegestarion || !idStudent || !idProg) {
-            return res.send({
-                message: "Error! There is missing data.",
-                code: 400
-            });
-        }
-        // find the student previos group
-
-        const groups = await db.groupe.findAll({
-            where: {
-                progID: idProg
-            },
-            include: [
-                {
-                    model: db.student,
-                    where: {
-                        ID_ROWID: idStudent
-                    },
-                    as: 'students',
-                    attributes: ['ID_ROWID']
-                }
-
-            ]
-        });
-        if (groups.length) {
-            const id = groups[0].ID_ROWID;
-            db.studentGroup.destroy({
-                where: {
-                    GroupeID: id,
-                    StudentID: idStudent
-                }
-            })
-        }
-        // associate the new groupe
-        if (idGroup) {
-            db.studentGroup.create({
-                GroupeID: idGroup,
-                StudentID: idStudent
-            })
-        }
-        return res.send({
-            message: `The registration has been added successfully.`,
-
-            code: 200
-        });
-
-    } catch (error) {
-        return res.send({
-            message: "An error occurred while adding the registration.",
-            error: error.message,
-            code: 400
-        });
-    }
-};
-const affectation = async (req, res, next) => {
-    try {
-        const { groups, idProg } = req.body.data;
-
-        // Check if the necessary data is provided
-        if (!idProg) {
-            return res.send({
-                message: "Error! There is missing data.",
-                code: 400
-            });
-        }
-        // get all Student in our programme
-
-        // find the student previos group
-        const groupValues = Object.values(groups);
-
-        groupValues.forEach(async (group) => {
-
-            if (group.value === true) {
-                const students = await db.student.findAll({
-                    include: [
-                        {
-                            model: db.program,
-                            as: 'programs',
-                            attributes: ['ID_ROWID'],
-                            where: {
-                                ID_ROWID: idProg
-                            }
-                        },
-                        {
-                            model: db.groupe,
-                            where: {
-                                progID: idProg
-                            },
-                            required: false  // Make it optional
-                        },
-                    ]
-                });
-                //get student witout group
-                const studentsWithoutGroup = students.filter(student => !student.groupe);
-                let i = 0;
-                let flag = false;
-
-                studentsWithoutGroup.forEach((student) => {
-                    if (!flag) {
-                        db.studentGroup.create({
-                            GroupeID: group.id,
-                            StudentID: student.ID_ROWID
-                        });
-
-                        i = i + 1;
-
-                        if (i >= group.take) {
-                            flag = true;
-                        }
-                    }
-                });
-
-
-            }
-        })
-
-        return res.send({
-            message: `The registration has been added successfully.`,
-
-            code: 200
-        });
-
-    } catch (error) {
-        return res.send({
-            message: "An error occurred while adding the registration.",
-            error: error.message,
-            code: 400
-        });
-    }
-};
 // Exporting the functions so they can be used elsewhere
 module.exports = {
     addRegistration,
@@ -361,6 +201,4 @@ module.exports = {
     listRegistrations,
     ///
     listProgrammeRegistrations,
-    updateRegistrationGroup,
-    affectation
 };

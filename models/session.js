@@ -7,23 +7,36 @@ module.exports = function (sequelize, DataTypes) {
             allowNull: false,
             primaryKey: true
         },
-        Startat: {
+        startAt: {
             type: DataTypes.TIME,
             allowNull: true
 
         },
-        EndsAt: {
+        endAt: {
             type: DataTypes.TIME,
             allowNull: true
 
+        },
+        dayCode: {
+            type: DataTypes.BIGINT,
+            allowNull: true
         },
         date: {
             type: DataTypes.DATEONLY,
             allowNull: true // Assuming this is optional
-        }
+        },
 
     },);
     session.associate = models => {
+        session.belongsTo(models.class, {
+            foreignKey: 'classID',
+            allowNull: true
+        });
+
+        session.belongsTo(models.groupe, {
+            foreignKey: 'groupID',
+            allowNull: true
+        });
     }
     return session;
 };

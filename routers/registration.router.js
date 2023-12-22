@@ -10,5 +10,7 @@ routeRegistration.delete("/remove/:id", jsonParser, registrationController.remov
 routeRegistration.get("/list", jsonParser, registrationController.listRegistrations);
 // Programme Regestraions part
 routeRegistration.post("/programmeListRegestarion", jsonParser, registrationController.listProgrammeRegistrations);
+routeRegistration.post("/updateRegistrationGroup", jsonParser, registrationController.updateRegistrationGroup);
+routeRegistration.post("/affectation", jsonParser, registrationController.affectation);
 
 module.exports = routeRegistration;

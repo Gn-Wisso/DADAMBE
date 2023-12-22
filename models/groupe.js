@@ -28,9 +28,9 @@ module.exports = function (sequelize, DataTypes) {
             foreignKey: 'GroupeID', // Using the correct primary key name for teacher
         });
         // group has many session in salle
-        groupe.belongsToMany(models.class, {
-            through: models.session,
-            foreignKey: 'groupID', // Using the correct primary key name for student
+        groupe.hasMany(models.session, {
+            foreignKey: 'groupID',
+            allowNull: true
         });
         groupe.belongsTo(models.program, {
             foreignKey: {
