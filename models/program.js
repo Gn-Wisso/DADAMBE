@@ -12,6 +12,7 @@ module.exports = function (sequelize, DataTypes) {
             allowNull: true
 
         },
+
         discription: {
             type: DataTypes.TEXT,
             allowNull: true
@@ -20,7 +21,6 @@ module.exports = function (sequelize, DataTypes) {
         type: {
             type: DataTypes.STRING,
             allowNull: true
-
         },
         isPublished: {
             type: DataTypes.BOOLEAN,
@@ -39,8 +39,16 @@ module.exports = function (sequelize, DataTypes) {
         EndInsciptionDate: {
             type: DataTypes.DATEONLY,
             allowNull: true // Assuming this is optional
-        }
-
+        },
+        prix: {
+            type: DataTypes.FLOAT,
+            allowNull: false,
+            comment: "Payment amount"
+        },
+        typeOfPaiment: {// total - par Séance - par Moins
+            type: DataTypes.STRING,
+            allowNull: true
+        },
     },);
     program.associate = models => {
         // program belong to one categorie
@@ -71,6 +79,12 @@ module.exports = function (sequelize, DataTypes) {
         program.hasOne(models.cour, {
             foreignKey: 'progId',
             onDelete: 'CASCADE' // If a person is deleted, the related user is also deleted
+        });
+        program.hasMany(models.payment, {
+            foreignKey: 'progID',
+            as: 'payments',
+            onDelete: 'CASCADE', // This is the key part for cascading delete
+            allowNull: true
         });
 
     }

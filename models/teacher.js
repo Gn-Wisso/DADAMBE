@@ -38,6 +38,8 @@ module.exports = function (sequelize, DataTypes) {
         teacher.belongsToMany(models.groupe, {
             through: models.teacherGroup,
             foreignKey: 'TeacherID', // Using the correct primary key name for teacher
+            onDelete: 'CASCADE', // This is the key part for cascading delete
+
         });
         // //create an ID_ROWID ref to the the last modification (updatedBy)
         // address.belongsTo(models.user, {

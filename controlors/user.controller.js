@@ -27,7 +27,6 @@ const addUser = async (req, res, next) => {
         // to create person :(firstName, lastName, mail, phoneNumber, dateOfBirth)
         // to create user we need to generat a code from his name and his date of birth
         const reqData = req.body.data;
-        console.log(reqData);
         const result = await addPerson(reqData);
         if (result.code === 400 || result.code === 409) {
             return res.send({
@@ -210,7 +209,7 @@ const ExploreSearchUsers = async (req, res, next) => {
 // user profile
 const getUserProfile = async (req, res, next) => {
     try {
-        const userID = req.body.userID;
+        const userID = req.params.id;
         if (!userID) {
             return {
                 message: "Error! There is missing data",
@@ -218,13 +217,28 @@ const getUserProfile = async (req, res, next) => {
             };
         }
         const user = await db.user.findByPk(userID, {
+            attributes: ['ID_ROWID', 'isConnected', 'role'],
             include: [{
                 model: db.person,
                 as: 'personProfile'
             }]
         });
+
+        // Process the image if it exists
+        if (user.personProfile.imagePath) {
+            const photoPath = path.join("uploads/profileImage/", user.personProfile.imagePath);
+
+            try {
+                await fs.promises.access(photoPath, fs.constants.F_OK);
+                user.personProfile.imagePath = await fs.promises.readFile(photoPath); // read the photo file contents
+            } catch (error) {
+                console.error(error);
+                user.personProfile.imagePath = null;
+            }
+        }
+
         return res.send({
-            message: "Users profile",
+            message: "User's profile",
             userData: user,
             code: 200,
         });
@@ -237,6 +251,7 @@ const getUserProfile = async (req, res, next) => {
 
     }
 }
+
 const updateGeneralUserData = async (req, res, next) => {
     try {
         const { userID, firstName, lastName, mail, phoneNumber, dateOfBirth, role, image } = req.body.data;
@@ -307,40 +322,55 @@ const updateGeneralUserData = async (req, res, next) => {
 const updatePassword = async (req, res, next) => {
     try {
         const { userID, oldPSW, newPSW } = req.body.data;
+
         if (!userID || !oldPSW || !newPSW) {
-            return {
+            return res.status(400).send({
                 message: "Error! There is missing data",
                 code: 400
-            };
-        }
-        const user = await db.user.findByPk(userID);
-        // find if the password is correct 
-        if (user) {
-            const passwordMatch = await bcrypt.compare(oldPSW, user.Password);
-            if (!passwordMatch) {
-                return done(null, false, { message: 'Incorrect password.' });
-            }
-            // hash the password
-            const hashedPassword = await bcrypt.hash(newPSW, 10);
-            user.password = hashedPassword;
-            await user.save();
+            });
         }
 
+        const user = await db.user.findByPk(userID);
+
+        if (!user) {
+            return res.send({
+                message: "User not found",
+                code: 404
+            });
+        }
+
+        // find if the password is correct 
+        const passwordMatch = await bcrypt.compare(oldPSW, user.Password);
+
+        if (!passwordMatch) {
+            return res.send({
+                message: 'Incorrect password.',
+                code: 401
+            });
+        }
+
+        // hash the new password
+        const hashedPassword = await bcrypt.hash(newPSW, 10);
+        user.Password = hashedPassword; // Make sure to use the correct property name
+        await user.save();
 
         return res.send({
-            message: "User dara are updated",
+            message: `User  has been updated successfully.`,
             userData: user,
             code: 200,
         });
+
     } catch (error) {
         return res.send({
             message: "An error occurred",
             error: error.message,
-            code: 400,
+            code: 500,
         });
-
     }
-}
+};
+
+
+
 module.exports = {
     addUser,
     getAllUsers,

@@ -1,5 +1,8 @@
 const db = require(".././models");
 const seq = require("sequelize");
+const path = require('path');
+const fs = require('fs');
+const Fuse = require('fuse.js');
 const op = seq.Op;
 require("dotenv").config();
 
@@ -178,31 +181,46 @@ const listProgrammeRegistrations = async (req, res, next) => {
                 {
                     model: db.student,
                     as: 'students',
-                    include: [{
-                        model: db.person,
-                        as: 'personProfile2',
-                        attributes: ['firstName', 'lastName', 'imagePath']
-                    },
-                    {
-                        model: db.groupe,
-                        where: {
-                            progID: progId
+                    include: [
+                        {
+                            model: db.person,
+                            as: 'personProfile2',
+                            attributes: ['firstName', 'lastName', 'imagePath']
                         },
-                        required: false  // Make it optional
-
-                    },
+                        {
+                            model: db.groupe,
+                            where: {
+                                progID: progId
+                            },
+                            required: false // Make it optional
+                        },
                     ]
                 },
-
             ]
         });
-        console.log("dddddd");
+
         console.log(registrations);
+
         if (!registrations) {
             return res.send({
                 message: "No registrations found.",
                 code: 404
             });
+        }
+
+        // Modify the image paths in registrations
+        for (const registration of registrations) {
+            const student = registration.students; // Assuming there's only one student per registration
+            if (student.personProfile2.imagePath !== null && student.personProfile2.imagePath !== '') {
+                const photoPath = path.join("uploads/profileImage/", student.personProfile2.imagePath);
+                try {
+                    await fs.promises.access(photoPath, fs.constants.F_OK);
+                    student.personProfile2.imagePath = await fs.promises.readFile(photoPath);
+                } catch (error) {
+                    console.error(error);
+                    student.personProfile2.imagePath = null;
+                }
+            }
         }
 
         return res.send({

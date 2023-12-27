@@ -234,25 +234,29 @@ const getAllSessionsInProg = async (req, res, next) => {
             }
         })
         const events = [];
-        data.groupes.forEach((groupe) => {
-            groupe.sessions.forEach((session) => {
-                // Extract session details
-                const { ID_ROWID: sessionId, startAt, endAt, date } = session;
+        if (data && data.groupes) {
+            data.groupes.forEach((groupe) => {
+                if (groupe.sessions) {
+                    groupe.sessions.forEach((session) => {
+                        // Extract session details
+                        const { ID_ROWID: sessionId, startAt, endAt, date } = session;
 
-                // Extract class details if available
-                const classDetails = session.class ? session.class.className : 'No class';
+                        // Extract class details if available
+                        const classDetails = session.class ? session.class.className : 'No class';
 
-                // Create events based on session data
-                events.push({
-                    id: sessionId, // Unique identifier for the event
-                    title: `Groupe ${groupe.GroupeName} - Salle ${classDetails}`, // Event title combining group and class details
-                    start: new Date(`${date} ${startAt}`), // Combine date and time for start
-                    end: new Date(`${date} ${endAt}`), // Combine date and time for end
-                    groupID: groupe.ID_ROWID
-                    // Add other event properties as needed
-                });
-            })
-        });
+                        // Create events based on session data
+                        events.push({
+                            id: sessionId, // Unique identifier for the event
+                            title: `Groupe ${groupe.GroupeName} - Salle ${classDetails}`, // Event title combining group and class details
+                            start: new Date(`${date} ${startAt}`), // Combine date and time for start
+                            end: new Date(`${date} ${endAt}`), // Combine date and time for end
+                            groupID: groupe.ID_ROWID
+                            // Add other event properties as needed
+                        });
+                    })
+                }
+            });
+        }
         return res.send({
             events: events,
             message: "Sessions fetch successfully",

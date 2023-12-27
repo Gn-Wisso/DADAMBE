@@ -7,7 +7,7 @@ require("dotenv").config();
 const addProgram = async (req, res, next) => {
     try {
         // Extract the data sent by the user request
-        const { title, discription, categID, type, isSkip, isPublished } = req.body.dataProgram;
+        const { title, discription, categID, type, isSkip, isPublished, prix, typeOfPaiment } = req.body.dataProgram;
         // Check if the title is provided
         if (!title || !type) {
             return res.send({
@@ -24,6 +24,8 @@ const addProgram = async (req, res, next) => {
             isSkiped: isSkip,
             categID: categID,
             isPublished: isPublished,
+            prix: prix,
+            typeOfPaiment: typeOfPaiment,
             PublishedDate: isPublished ? Date.now() : null,
         });
         if (!isSkip) {
@@ -53,7 +55,7 @@ const addProgram = async (req, res, next) => {
         // Return a success message along with the ID of the newly created program
         return res.send({
             message: `Program '${title}' has been added successfully.`,
-            program: program,
+            programId: program.ID_ROWID,
             code: 200
         });
 
@@ -72,7 +74,7 @@ const updateProgram = async (req, res, next) => {
     try {
         const programId = req.params.id;
         // Extract the data sent by the user request
-        const { title, discription, categID, type, isSkip, isPublished } = req.body.dataProgram;
+        const { title, discription, categID, type, isSkip, isPublished, prix, typeOfPaiment } = req.body.dataProgram;
         // Check if the title is provided
         if (!title || !type) {
             return res.send({
@@ -114,7 +116,9 @@ const updateProgram = async (req, res, next) => {
             programData.categID = categID,
             programData.isPublished = isPublished,
             programData.PublishedDate = isPublished ? Date.now() : null,
-            programData.save();
+            programData.prix = prix;
+        programData.typeOfPaiment = typeOfPaiment;
+        programData.save();
         if (!isSkip) {
             if (type == "formation") {
                 const { startDay, endDay, inscriptionEndDay, isLimited, nbrParticipat } = req.body.dataType

@@ -11,9 +11,9 @@ userRouter.delete("/removeUser/:id", jsonParser, userControler.removeUser);
 userRouter.get("/ExploreSearchUsers/:key", jsonParser, userControler.ExploreSearchUsers);
 
 // user profile
-userRouter.post("/getUserProfile", jsonParser, userControler.getUserProfile);
+userRouter.get("/getUserProfile/:id", jsonParser, userControler.getUserProfile);
 userRouter.put("/updateGeneralUserData", jsonParser, userControler.updateGeneralUserData);
-userRouter.post("/updatePasword", jsonParser, userControler.updatePassword);
+userRouter.put("/updatePasword", jsonParser, userControler.updatePassword);
 
 
 
