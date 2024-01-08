@@ -74,7 +74,8 @@ const getAllUsers = async (req, res, next) => {
             }]
         });
         for (const user of allUsers) {
-            if (user.personProfile.imagePath != null || user.personProfile.imagePath != '') {
+            console.log(user.personProfile.mail);
+            if (user.personProfile.imagePath && user.personProfile.imagePath != '') {
                 const photoPath = path.join("uploads/profileImage/", user.personProfile.imagePath); // get the photo file path
                 try {
                     await fs.promises.access(photoPath, fs.constants.F_OK); // check if the file exists

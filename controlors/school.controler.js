@@ -6,11 +6,14 @@ const updateGeneralSchoolData = async (req, res, next) => {
         /**
          updatePayload = {
          name: 'New Name',
+         address: "address",
+         lib:".....",
          contacts: {
             phone: '555-5555',
             mail: 'newemail@example.com',
-            fix: '555-5556',
-            fax: '555-5557'
+            facebook: "......",
+            twitter: ".......",
+            instagram: "......."
         },
         logo: 'data',
         };
@@ -18,6 +21,7 @@ const updateGeneralSchoolData = async (req, res, next) => {
         const filePath = './data/school.json';
         const schoolData = JSON.parse(fs.readFileSync(filePath, 'utf8'));
         schoolData.name = updatePayload.name;
+        schoolData.address = updatePayload.address;
         schoolData.contacts = {
             ...schoolData.contacts,
             ...updatePayload.contacts

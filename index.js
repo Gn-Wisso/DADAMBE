@@ -18,6 +18,7 @@ const userRouter = require('./routers/user.router');
 const schoolRouter = require('./routers/school.router');
 const sessionRouter = require('./routers/session.router');
 const staticRouter = require('./routers/statisticData.router');
+const webSiteRouter = require('./routers/webSite.router');
 const middleware = require('./middleware/connexionVerification');
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json({ strict: false, limit: "15mb" }));
@@ -34,6 +35,7 @@ app.get("/DADAM_Backend", (req, res) => {
 
 app.use('/DADAM_Backend/protected/*', middleware.verifyUserTokenExpiration);
 app.use('/DADAM_Backend/connexion', connexionRouter);
+app.use('/DADAM_Backend/webSite', webSiteRouter);
 app.use('/DADAM_Backend/protected/students', studentRouter);
 app.use('/DADAM_Backend/protected/teachers', teacherRouter);
 app.use('/DADAM_Backend/protected/program', programRouter);

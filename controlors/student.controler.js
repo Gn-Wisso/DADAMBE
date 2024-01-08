@@ -285,10 +285,178 @@ const ExploreSearch = async (req, res, next) => {
         });
     }
 };
+
+
+const getStudentHistory = async (req, res, next) => {
+    try {
+        const id = req.body.id;
+        if (!id) {
+            return res.send({
+                message: "the id undefined",
+                code: 400,
+            });
+        }
+        // get the user 
+        const userStudent = await db.student.findByPk(id, {
+            attributes: ['ID_ROWID', 'createdAt'],
+            include: {
+                model: db.groupe, // Corrected model name
+                attributes: ['ID_ROWID', 'GroupeName'],
+                // Include additional nested associations if needed
+                include: {
+                    model: db.program,
+                    attributes: ['ID_ROWID', 'title'],
+                },
+                required: false // Use 'required: false' for a LEFT JOIN-like behavior
+            }
+        });
+
+        if (userStudent) {
+            // Here, 'userStudent' will contain the student details and associated group data
+            console.log(userStudent.toJSON());
+        } else {
+            console.log('Student not found');
+        }
+
+        if (!userStudent) {
+
+            return res.send({
+                message: "the user unfind",
+                code: 400,
+            });
+        }
+        // find list of subscibs for the user 
+        const listOfUserSubscrib = await db.registration.findAll({
+            where: {
+                StudentID: id
+            },
+            include: [{
+                model: db.program,
+                attributes: ['ID_ROWID', 'title'],
+                as: 'programs'
+            }]
+        });
+        // get list of last payment user made
+        const paymentList = await db.payment.findAll({
+            StudentID: id,
+            include: [{
+                model: db.program,
+                attributes: ['ID_ROWID', 'title'],
+                as: 'programs'
+            }]
+        });
+        // get list of last activity in bieng in a group
+        const listStudentGroup = userStudent.groupes;
+        // Merging and formatting data into the required list format
+        const mergedList = [];
+        mergedList.push({
+            id: 1,
+            title: "Création De Compte",
+            date: userStudent.createdAt, // Assuming subscriptions have a createdAt field
+            type: 'AccountCreation',
+            logo: 'brand-logo-1.svg'
+        })
+        var i = 2;
+        await listStudentGroup.forEach(groupe => {
+            mergedList.push({
+                id: i,
+                title: "S'inscrire dans le groupe " + groupe.GroupeName + " de programme " + groupe.program.title,
+                date: groupe.studentGroup.createdAt, // Assuming subscriptions have a createdAt field
+                type: 'groupSubscription', // Assuming this is the type for subscriptions
+                logo: 'brand-logo-4.svg',
+                progID: groupe.program.ID_ROWID
+            });
+            i++;
+        });
+        await listOfUserSubscrib.forEach(subscription => {
+            mergedList.push({
+                id: i,
+                title: "S'abonner au programme " + subscription.programs.title,
+                date: subscription.createdAt, // Assuming subscriptions have a createdAt field
+                type: 'subscription', // Assuming this is the type for subscriptions
+                logo: 'brand-logo-2.svg',
+                progID: subscription.programs.ID_ROWID
+            });
+            i++;
+        });
+
+        await paymentList.forEach(payment => {
+            mergedList.push({
+                id: i,
+                title: "Payez " + payment.montant + " DA pour le programme " + payment.programs.title,
+                date: payment.createdAt, // Assuming payments have a createdAt field
+                type: 'payment', // Assuming this is the type for payments
+                logo: 'brand-logo-3.svg',
+                progID: payment.programs.ID_ROWID
+            });
+            i++;
+        });
+        res.send({
+            message: "succes",
+            mergedList: mergedList,
+            code: 200,
+        });
+    } catch (error) {
+        console.log(error);
+        res.send({
+            message: "An error occurred",
+            error: error.message,
+            code: 400,
+        });
+        throw error;
+    }
+}
+
+const getStudentData = async (req, res, next) => {
+    try {
+        const id = req.body.id;
+        if (!id) {
+            return res.send({
+                message: "the id undefined",
+                code: 400,
+            });
+        }
+        // get the user 
+        const userStudent = await db.student.findByPk(id, {
+            include: [{
+                model: db.person,
+                as: 'personProfile2'
+            }]
+        });
+        // Process the image if it exists
+        if (userStudent.personProfile2.imagePath) {
+            const photoPath = path.join("uploads/profileImage/", userStudent.personProfile2.imagePath);
+
+            try {
+                await fs.promises.access(photoPath, fs.constants.F_OK);
+                userStudent.personProfile2.imagePath = await fs.promises.readFile(photoPath); // read the photo file contents
+            } catch (error) {
+                console.error(error);
+                userStudent.personProfile2.imagePath = null;
+            }
+        }
+
+        res.send({
+            message: "succes",
+            student: userStudent,
+            code: 200,
+        });
+    } catch (error) {
+        console.log(error);
+        res.send({
+            message: "An error occurred",
+            error: error.message,
+            code: 400,
+        });
+        throw error;
+    }
+}
 module.exports = {
     addStudent,
     updateStudent,
     removeStudent,
     listStudents,
-    ExploreSearch
+    ExploreSearch,
+    getStudentHistory,
+    getStudentData
 };

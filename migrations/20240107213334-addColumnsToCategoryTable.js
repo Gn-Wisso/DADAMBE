@@ -9,13 +9,7 @@ module.exports = {
      * Example:
      * await queryInterface.createTable('users', { id: Sequelize.INTEGER });
      */
-    await queryInterface.addColumn('programs', 'prix', {
-      type: Sequelize.FLOAT,
-      allowNull: false,
-      comment: "Payment amount"
-    });
-
-    await queryInterface.addColumn('programs', 'typeOfPaiment', {
+    await queryInterface.addColumn('categories', 'icon', {
       type: Sequelize.STRING,
       allowNull: true
     });
@@ -28,7 +22,7 @@ module.exports = {
      * Example:
      * await queryInterface.dropTable('users');
      */
-    await queryInterface.removeColumn('programs', 'prix');
-    await queryInterface.removeColumn('programs', 'typeOfPaiment');
+    await queryInterface.removeColumn('categories', 'icon');
+
   }
 };

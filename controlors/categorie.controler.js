@@ -13,8 +13,7 @@ require("dotenv").config();
 
 const addCategorie = async (req, res, next) => {
     try {
-        const { title, isPublished, supperCatID } = req.body.data;
-        console.log(req.body.data);
+        const { title, isPublished, supperCatID, icon } = req.body.data;
         // Check if the necessary data (title) is provided
         if (!title) {
             return res.send({
@@ -28,6 +27,8 @@ const addCategorie = async (req, res, next) => {
             title: title,
             isPublished: isPublished,
             isSubCategory: supperCatID ? true : false,
+            publishedAt: isPublished ? new Date() : null,
+            icon: icon,
             supperCatID: supperCatID
         });
 
@@ -91,7 +92,7 @@ const removeCategorie = async (req, res, next) => {
 const updateCategorie = async (req, res, next) => {
     try {
         const categorieId = req.params.id;  // Assuming the category ID is passed as a parameter in the URL
-        const { title, isPublished, supperCatID } = req.body.data;
+        const { title, isPublished, supperCatID, icon } = req.body.data;
 
         // Check if category ID is provided
         if (!categorieId || !title) {
@@ -106,6 +107,8 @@ const updateCategorie = async (req, res, next) => {
             title: title,
             isPublished: isPublished,
             isSubCategory: supperCatID ? true : false,
+            publishedAt: isPublished ? new Date() : null,
+            icon: icon,
             supperCatID: supperCatID
         }, {
             where: { ID_ROWID: categorieId }
@@ -140,6 +143,7 @@ const listCategories = async (req, res, next) => {
                 attributes: ['ID_ROWID']
             }
         });
+        console.log(categories);
         return res.send({
             message: "List of all categories.",
             categories: categories,
@@ -155,11 +159,15 @@ const listCategories = async (req, res, next) => {
 };
 const selectedListCategories = async (req, res, next) => {
     try {
-        const categories = await db.categorie.findAll({
-            where: {
-                supperCatID: null
+        const result = await db.categorie.findAll({
+            include: {
+                model: db.categorie,
+                as: 'categories',
+                attributes: ['ID_ROWID']
             }
         });
+        const categories = result.filter(category => category.categories.length == 0);
+
         return res.send({
             message: "List of all categories.",
             categories: categories,
