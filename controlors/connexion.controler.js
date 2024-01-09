@@ -9,10 +9,11 @@ const { v4: uuidv4 } = require("uuid");
 const bcrypt = require('bcrypt');
 // Generate a new API token
 function generateToken(userName, id) {
+    const expirationTime = Math.floor(Date.now() / 1000) + 864000; // 10 days in seconds
     const payload = {
         userId: id,
         userMail: userName,
-        exp: Math.floor(Date.now() / 1000) + 60 * 60,
+        exp: expirationTime,
     };
 
     const token = jwt.sign(payload, process.env.SECRET_KEY, {
