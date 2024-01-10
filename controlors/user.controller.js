@@ -296,15 +296,33 @@ const updateGeneralUserData = async (req, res, next) => {
 
         }
         if (user && user.personProfile) {
-            user.role = role;
-            user.personProfile.imagePath = imagePath;
-            user.personProfile.firstName = firstName;
-            user.personProfile.lastName = lastName;
-            user.personProfile.mail = mail;
-            user.personProfile.dateOfBirth = dateOfBirth;
-            user.personProfile.phoneNumber = phoneNumber;
-            await user.personProfile.save();
-            await user.save();
+            try {
+                user.role = role;
+                user.personProfile.imagePath = imagePath;
+                user.personProfile.firstName = firstName;
+                user.personProfile.lastName = lastName;
+                user.personProfile.mail = mail;
+                user.personProfile.dateOfBirth = dateOfBirth;
+                user.personProfile.phoneNumber = phoneNumber;
+                await user.personProfile.save();
+                await user.save();
+            } catch (error) {
+                if (error.name === 'SequelizeUniqueConstraintError') {
+                    // Handle the unique constraint violation error (e.g., duplicate mail)
+                    // You can log the error, notify the user, or perform any necessary actions
+                    return res.send({
+                        message: "Erreur: L'email est déjà utilisé.",
+                        code: 400
+                    });              // You might want to return or throw the error to handle it appropriately
+                } else {
+                    // Handle other types of errors, if needed
+                    return res.send({
+                        message: "Error updating record.",
+                        code: 400
+                    });
+                    // You might want to return or throw the error to handle it appropriately
+                }
+            }
         }
         return res.send({
             message: `user '${user.personProfile.firstName} ${user.personProfile.lastName}' has been updated successfully.`,

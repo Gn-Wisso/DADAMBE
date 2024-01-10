@@ -104,16 +104,34 @@ const updateTeacher = async (req, res, next) => {
             });
 
         }
-        await db.person.update({
-            firstName: data.firstName,
-            lastName: data.lastName,
-            mail: data.mail,
-            phoneNumber: data.phoneNumber,
-            dateOfBirth: data.dateOfBirth,
-            imagePath: imagePath
-        }, {
-            where: { ID_ROWID: teacherRecord.personId }
-        });
+        try {
+            await db.person.update({
+                firstName: data.firstName,
+                lastName: data.lastName,
+                mail: data.mail,
+                phoneNumber: data.phoneNumber,
+                dateOfBirth: data.dateOfBirth,
+                imagePath: imagePath
+            }, {
+                where: { ID_ROWID: teacherRecord.personId }
+            });
+        } catch (error) {
+            if (error.name === 'SequelizeUniqueConstraintError') {
+                // Handle the unique constraint violation error (e.g., duplicate mail)
+                // You can log the error, notify the user, or perform any necessary actions
+                return res.send({
+                    message: "Erreur: L'email est déjà utilisé.",
+                    code: 400
+                });              // You might want to return or throw the error to handle it appropriately
+            } else {
+                // Handle other types of errors, if needed
+                return res.send({
+                    message: "Error updating record.",
+                    code: 400
+                });
+                // You might want to return or throw the error to handle it appropriately
+            }
+        }
         // Now update teacher-specific details
         await db.teacher.update({
             subject: data.subject

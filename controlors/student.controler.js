@@ -43,7 +43,8 @@ const addStudent = async (req, res, next) => {
         // create the student 
         const createdStudent = await db.student.create({
             studentCode: generatedCode,
-            personId: result
+            personId: result,
+            isActive: "Active"
         })
         return res.send({
             message: "This user has been added successfully to Your list of student",
@@ -71,6 +72,8 @@ const updateStudent = async (req, res, next) => {
                 code: 400
             });
         }
+        // find if there is already an exicted profile with the same mail
+
         // Get the personId for the student
         const studentRecord = await db.student.findOne({
             where: { ID_ROWID: sudentid },
@@ -107,16 +110,35 @@ const updateStudent = async (req, res, next) => {
 
         }
         // Now update the person using the personId from the student record
-        await db.person.update({
-            firstName: data.firstName,
-            lastName: data.lastName,
-            mail: data.mail,
-            phoneNumber: data.phoneNumber,
-            dateOfBirth: data.dateOfBirth,
-            imagePath: imagePath
-        }, {
-            where: { ID_ROWID: studentRecord.personId }
-        });
+        try {
+            await db.person.update({
+                firstName: data.firstName,
+                lastName: data.lastName,
+                mail: data.mail,
+                phoneNumber: data.phoneNumber,
+                dateOfBirth: data.dateOfBirth,
+                imagePath: imagePath
+            }, {
+                where: { ID_ROWID: studentRecord.personId }
+            });
+            // If the update is successful, proceed with any necessary logic
+        } catch (error) {
+            if (error.name === 'SequelizeUniqueConstraintError') {
+                // Handle the unique constraint violation error (e.g., duplicate mail)
+                // You can log the error, notify the user, or perform any necessary actions
+                return res.send({
+                    message: "Erreur: L'email est déjà utilisé.",
+                    code: 400
+                });              // You might want to return or throw the error to handle it appropriately
+            } else {
+                // Handle other types of errors, if needed
+                return res.send({
+                    message: "Error updating record.",
+                    code: 400
+                });
+                // You might want to return or throw the error to handle it appropriately
+            }
+        }
         await db.student.update({
             isActive: data.status
         }, {
