@@ -166,16 +166,22 @@ const removeProgram = async (req, res, next) => {
         const programId = req.params.id;
 
         const programme = await db.program.findByPk(programId);
-        if (programme && programme.type == "formation") {
+        if(programme){
+               // Delete payments associated with the program
+        await db.payment.destroy({
+            where: { progID: programId }
+        });
+        
+        if (programme.type == "formation") {
             await db.formation.destroy({
                 where: { progID: programId }
             })
-        } else if (programme && programme.type == "cour") {
+        } else if (programme.type == "cour") {
             await db.cour.destroy({
                 where: { progID: programId }
             })
         }
-
+    }
         // Delete the program record from the database
         await db.program.destroy({
             where: { ID_ROWID: programId }

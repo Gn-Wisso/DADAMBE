@@ -53,7 +53,7 @@ module.exports = function (sequelize, DataTypes) {
             foreignKey: 'StudentID',
             as: 'payments',
             onDelete: 'CASCADE', // This is the key part for cascading delete
-            allowNull: true
+            allowNull: false
         });
 
     }

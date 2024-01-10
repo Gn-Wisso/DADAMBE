@@ -167,7 +167,10 @@ const getStudentsForProgramPayments = async (req, res, next) => {
         }
 
         const payments = await db.payment.findAll({
-            where: { progID: programId },
+            where: { 
+                progID: programId,
+                '$StudentID$': { [db.Sequelize.Op.not]: null } // Filter out payments where the student ID is null
+            },
             include: [{
                 model: db.student,
                 as: 'students',
@@ -179,9 +182,9 @@ const getStudentsForProgramPayments = async (req, res, next) => {
             }]
         });
 
-        if (!payments) {
+        if (!payments || payments.length === 0) {
             return res.status(404).json({
-                message: "No payments found for the program.",
+                message: "No valid payments found for the program.",
                 code: 404
             });
         }
@@ -215,6 +218,9 @@ const getStudentsForProgramPayments = async (req, res, next) => {
         });
     }
 };
+
+
+
 
 
 const getTotalPaymentsForProgram = async (req, res, next) => {
