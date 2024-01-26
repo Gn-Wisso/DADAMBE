@@ -38,14 +38,16 @@ module.exports = function (sequelize, DataTypes) {
             foreignKey: {
                 name: 'categID',
                 allowNull: true
-            }
+            },
+            onDelete: 'CASCADE' // This will enable cascading delete
         });
         // a categorie can have many subCategories
         categorie.hasMany(models.categorie, {
             foreignKey: {
                 name: 'supperCatID',
                 allowNull: true
-            }
+            },
+            onDelete: 'CASCADE' // This will enable cascading delete
         });
     }
 

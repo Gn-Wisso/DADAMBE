@@ -115,6 +115,11 @@ const removePayment = async (req, res, next) => {
 const listPayments = async (req, res, next) => {
     try {
         const payments = await db.payment.findAll({
+            where: {
+                StudentID: {
+                    [op.ne]: null,
+                }
+            },
             include: [
                 {
                     model: db.student,
@@ -167,7 +172,7 @@ const getStudentsForProgramPayments = async (req, res, next) => {
         }
 
         const payments = await db.payment.findAll({
-            where: { 
+            where: {
                 progID: programId,
                 '$StudentID$': { [db.Sequelize.Op.not]: null } // Filter out payments where the student ID is null
             },

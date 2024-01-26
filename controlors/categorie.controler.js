@@ -65,12 +65,19 @@ const removeCategorie = async (req, res, next) => {
                 code: 400
             });
         }
-        await db.categorie.destroy({
-            where: {
-                supperCatID: categorieId
-            },
-            force: true // This ensures that it deletes even if the associations are not properly defined
-        });
+        // // delete all programs associated to this category
+        // await db.categorie.destroy({
+        //     where: {
+        //         supperCatID: categorieId
+        //     },
+        //     force: true // This ensures that it deletes even if the associations are not properly defined
+        // });
+        // await db.categorie.destroy({
+        //     where: {
+        //         supperCatID: categorieId
+        //     },
+        //     force: true // This ensures that it deletes even if the associations are not properly defined
+        // });
         await db.categorie.destroy({
             where: { ID_ROWID: categorieId }
         });

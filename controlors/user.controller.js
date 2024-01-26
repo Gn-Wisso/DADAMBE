@@ -387,7 +387,24 @@ const updatePassword = async (req, res, next) => {
         });
     }
 };
-
+// get user position
+const getUserPosition = async (req, res, next) => {
+    const { userID } = req.body;
+    if (!userID) {
+        return res.status(400).send({
+            message: "Error! There is missing data",
+            code: 400
+        });
+    }
+    const user = await db.user.findByPk(userID, {
+        attributes: ['role']
+    });
+    return res.send({
+        message: `user position has been updated successfully.`,
+        userData: user,
+        code: 200,
+    });
+};
 
 
 module.exports = {
@@ -397,5 +414,6 @@ module.exports = {
     ExploreSearchUsers,
     getUserProfile,
     updateGeneralUserData,
-    updatePassword
+    updatePassword,
+    getUserPosition
 };
