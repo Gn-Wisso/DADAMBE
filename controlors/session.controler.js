@@ -96,38 +96,46 @@ function getDatesForCodeDayBetween(dateStart, dateEnd, dayCode) {
 }
 
 
-//devide intervlse :
 function divideTimeInterval(startTime, endTime, duration, intervals) {
     const start = new Date(`1970-01-01T${startTime}`);
     const end = new Date(`1970-01-01T${endTime}`);
 
     if (!duration) {
-        const [hours1, minutes1] = startTime.split(':').map(Number);
-        const [hours2, minutes2] = endTime.split(':').map(Number);
+        const [hours1, minutes1, ampm1] = startTime.match(/(\d+):(\d+) ([APMapm]{2})/).slice(1);
+        const [hours2, minutes2, ampm2] = endTime.match(/(\d+):(\d+) ([APMapm]{2})/).slice(1);
 
-        const totalMinutes1 = (hours1 * 60) + minutes1;
-        const totalMinutes2 = (hours2 * 60) + minutes2;
+        const totalMinutes1 = (parseInt(hours1) % 12 + (ampm1.toUpperCase() === 'PM' ? 12 : 0)) * 60 + parseInt(minutes1);
+        const totalMinutes2 = (parseInt(hours2) % 12 + (ampm2.toUpperCase() === 'PM' ? 12 : 0)) * 60 + parseInt(minutes2);
+
         let intervalMinutes = Math.abs(totalMinutes2 - totalMinutes1);
         // Calculate hours and remaining minutes
         const hours = Math.floor(intervalMinutes / 60);
         const minutes = intervalMinutes % 60;
         duration = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
-
     }
+
     const durationParts = duration.split(':');
     const durationHours = parseInt(durationParts[0], 10);
     const durationMinutes = parseInt(durationParts[1], 10);
     const durationMillis = (durationHours * 60 + durationMinutes) * 60 * 1000;
+
     let current = new Date(start);
 
     while (current < end) {
         const subIntervalStart = new Date(current);
         const subIntervalEnd = new Date(current.getTime() + durationMillis);
-        if (subIntervalEnd <= end) { intervals.push({ start: subIntervalStart.toLocaleTimeString(), end: subIntervalEnd.toLocaleTimeString() }); }
+
+        if (subIntervalEnd <= end) {
+            intervals.push({
+                start: subIntervalStart.toISOString().substr(11, 5), // Extract HH:mm
+                end: subIntervalEnd.toISOString().substr(11, 5)
+            });
+        }
 
         current = subIntervalEnd;
     }
-
+console.log("-------------------------------------------------------------------------");
+console.log(intervals);
     return intervals;
 }
 
