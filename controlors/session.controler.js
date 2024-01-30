@@ -176,7 +176,7 @@ const addSessions = async (req, res, next) => {
 
                 for (const planKey in day.plans) {
                     const plan = day.plans[planKey];
-
+                    console.log(plan);
                     for (const dateKey in plan.data) {
                         const date = plan.data[dateKey];
 
@@ -383,13 +383,13 @@ const getAllSessions = async (req, res, next) => {
             const { ID_ROWID: sessionId, startAt, endAt, date } = session;
 
             // Extract class details if available
-            const salleDetails = session.class ? session.class.GroupeName : 'No Salle';
+            const salleDetails = session.class ? session.class.className : 'No Salle';
             const groupeDetails = session.groupe ? session.groupe.GroupeName : 'No Groupe';
             const progDetails = (session.groupe && session.groupe.program) ? session.groupe.program.title : 'No programme';
             // Create events based on session data
             events.push({
                 id: sessionId, // Unique identifier for the event
-                title: `Programme ${progDetails} - Groupe ${groupeDetails} - Groupe ${salleDetails}`, // Event title combining group and class details
+                title: `Programme ${progDetails} - Groupe ${groupeDetails} - Salle ${salleDetails}`, // Event title combining group and class details
                 start: new Date(`${date} ${startAt}`), // Combine date and time for start
                 end: new Date(`${date} ${endAt}`), // Combine date and time for end
                 groupID: session.groupID

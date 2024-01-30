@@ -18,6 +18,8 @@ const userRouter = require('./routers/user.router');
 const schoolRouter = require('./routers/school.router');
 const sessionRouter = require('./routers/session.router');
 const staticRouter = require('./routers/statisticData.router');
+const LevelOfStudyRouter = require('./routers/levelOfStudy.router');
+
 const webSiteRouter = require('./routers/webSite.router');
 const middleware = require('./middleware/connexionVerification');
 app.use(bodyParser.urlencoded({ extended: true }));
@@ -45,11 +47,11 @@ app.use('/DADAM_Backend/protected/class', classRouter);
 app.use('/DADAM_Backend/protected/categorie', categorieRouter);
 app.use('/DADAM_Backend/protected/groupe', groupeRouter);
 app.use('/DADAM_Backend/protected/gs', GSRouter);
-
 app.use('/DADAM_Backend/protected/user', userRouter);
 app.use('/DADAM_Backend/protected/school', schoolRouter);
 app.use('/DADAM_Backend/protected/session', sessionRouter);
 app.use('/DADAM_Backend/protected/static', staticRouter);
+app.use('/DADAM_Backend/protected/educationLevel', LevelOfStudyRouter);
 
 // Function to create initial user if no users exist
 const createInitialUser = async () => {

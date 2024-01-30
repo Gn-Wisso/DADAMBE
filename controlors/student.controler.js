@@ -1,6 +1,5 @@
 const db = require(".././models");
 const seq = require("sequelize");
-const op = seq.Op;
 const crypto = require('crypto');
 const path = require('path');
 const fs = require('fs');
@@ -8,6 +7,39 @@ const Fuse = require('fuse.js');
 require("dotenv").config();
 const { addPerson } = require("./person.controler");
 const { generateStudentCode, checkIfCodeExists } = require("./generator");
+
+async function uploadFiles(files, idStudent) {
+    const uploadedFiles = [];
+
+    for (const file of files) {
+        const { data, name } = file; // Assuming each file object has 'data' (Base64 data), 'type' (e.g., 'image/jpeg', 'application/pdf'), and 'name' properties
+        const base64Data = data.split(';base64,').pop();
+        // Extract the file extension from the name
+        const fileName = `${Date.now()}_${name}`;
+
+        try {
+            // Write the file to the uploads directory
+            await fs.writeFile("uploads/studentsFiles/" + fileName, base64Data, { encoding: 'base64' },
+                async (err) => {
+                    if (err) {
+                        console.error(err);
+
+                    } else {
+                        console.log('Image uploaded successfully');
+                        // save the file name in document bd
+                        await db.document.create({
+                            documentName: fileName,
+                            studentID: idStudent
+                        });
+                    }
+                });
+        } catch (error) {
+            console.error(`Error uploading ${name}:`, error);
+        }
+    }
+
+    return uploadedFiles;
+}
 const addStudent = async (req, res, next) => {
     try {
         // get the data sent by the user request :
@@ -15,6 +47,12 @@ const addStudent = async (req, res, next) => {
         // to create person :(firstName, lastName, mail, phoneNumber, dateOfBirth)
         // to create student we need to generat a code from his name and his date of birth
         const reqData = req.body.data;
+        if (!reqData.levelID) {
+            return res.send({
+                message: "Error! There is missing data.",
+                code: 400
+            });
+        }
         const result = await addPerson(reqData);
         if (result.code === 400 || result.code === 409) {
             return res.send({
@@ -46,6 +84,13 @@ const addStudent = async (req, res, next) => {
             personId: result,
             isActive: "Active"
         })
+        // create student level
+        await db.studentLevel.create({
+            studentID: createdStudent.ID_ROWID,
+            levelID: reqData.levelID,
+            yearID: reqData.yearID
+        });
+        await uploadFiles(reqData.files, createdStudent.ID_ROWID);
         return res.send({
             message: "This user has been added successfully to Your list of student",
             studentId: createdStudent.ID_ROWID,

@@ -55,7 +55,23 @@ module.exports = function (sequelize, DataTypes) {
             onDelete: 'CASCADE', // This is the key part for cascading delete
             allowNull: false
         });
-
+        // save Student Document
+        student.hasMany(models.document, {
+            foreignKey: 'studentID',
+            onDelete: 'CASCADE', // This is the key part for cascading delete
+            allowNull: false
+        });
+        // Student Level of education
+        student.belongsTo(models.educationalLevel, {
+            foreignKey: {
+                name: 'LevelID',
+                allowNull: false
+            }
+        });
+        student.hasOne(models.studentLevel, {
+            foreignKey: 'studentID',
+            onDelete: 'CASCADE' // If a person is deleted, the related user is also deleted
+        });
     }
     return student;
 };
