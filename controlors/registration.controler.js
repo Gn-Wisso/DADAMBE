@@ -185,7 +185,7 @@ const listProgrammeRegistrations = async (req, res, next) => {
                         {
                             model: db.person,
                             as: 'personProfile2',
-                            attributes: ['firstName', 'lastName', 'imagePath']
+                            attributes: ['firstName', 'lastName', 'imagePath','dateOfBirth']
                         },
                         {
                             model: db.groupe,
@@ -194,8 +194,17 @@ const listProgrammeRegistrations = async (req, res, next) => {
                             },
                             required: false // Make it optional
                         },
+                     
                     ]
                 },
+                {
+                    model: db.program,
+                    as: 'programs', // Match the association name in the registration model
+                    where: {
+                        ID_ROWID: progId
+                    },
+                    attributes: ['title', 'type']
+                }
             ]
         });
 

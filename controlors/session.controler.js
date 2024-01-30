@@ -29,8 +29,7 @@ const getAvailableData = async (req, res, next) => {
 
         datesForCodeDay[day] = getDatesForCodeDayBetween(startDate, endDate, parseInt(day));
     }
-    console.log(datesForCodeDay);
-
+console.log("I am IN ------------------------------------------------------------------------------------------------------------");
     // get Classes with thiere sessions
     const sessions = await db.session.findAll();
 
@@ -68,7 +67,7 @@ const getAvailableData = async (req, res, next) => {
             i++;
         }));
     }
-
+console.log(plans)
     return res.send({
         plans: plans,
         message: "futch plans data successfully",
@@ -176,7 +175,7 @@ const addSessions = async (req, res, next) => {
 
                 for (const planKey in day.plans) {
                     const plan = day.plans[planKey];
-
+                     console.log(plan);
                     for (const dateKey in plan.data) {
                         const date = plan.data[dateKey];
 
