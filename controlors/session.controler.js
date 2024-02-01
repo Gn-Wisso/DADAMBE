@@ -277,7 +277,8 @@ const getAllSessionsInProg = async (req, res, next) => {
                             title: `Groupe ${groupe.GroupeName} - Salle ${classDetails}`, // Event title combining group and class details
                             start: new Date(`${date} ${startAt}`), // Combine date and time for start
                             end: new Date(`${date} ${endAt}`), // Combine date and time for end
-                            groupID: groupe.ID_ROWID
+                            groupID: groupe.ID_ROWID,
+                            groupename:groupe.GroupeName
                             // Add other event properties as needed
                         });
                     })
