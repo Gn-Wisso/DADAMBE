@@ -10,13 +10,11 @@ module.exports = function (sequelize, DataTypes) {
         title: {
             type: DataTypes.STRING,
             allowNull: true
-
         },
 
         discription: {
             type: DataTypes.TEXT,
             allowNull: true
-
         },
         type: {
             type: DataTypes.STRING,
@@ -74,11 +72,19 @@ module.exports = function (sequelize, DataTypes) {
         });
         program.hasOne(models.formation, {
             foreignKey: 'progId',
-            onDelete: 'CASCADE' // If a person is deleted, the related user is also deleted
+            onDelete: 'CASCADE'
         });
         program.hasOne(models.cour, {
             foreignKey: 'progId',
-            onDelete: 'CASCADE' // If a person is deleted, the related user is also deleted
+            onDelete: 'CASCADE'
+        });
+        program.hasOne(models.activity, {
+            foreignKey: 'progId',
+            onDelete: 'CASCADE'
+        });
+        program.hasOne(models.workshop, {
+            foreignKey: 'progId',
+            onDelete: 'CASCADE'
         });
         program.hasMany(models.payment, {
             foreignKey: 'progID',

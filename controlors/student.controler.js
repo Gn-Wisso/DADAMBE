@@ -10,10 +10,11 @@ const { generateStudentCode, checkIfCodeExists } = require("./generator");
 
 async function uploadFiles(files, idStudent) {
     const uploadedFiles = [];
-
+    console.log(files);
     for (const file of files) {
         const { data, name } = file; // Assuming each file object has 'data' (Base64 data), 'type' (e.g., 'image/jpeg', 'application/pdf'), and 'name' properties
         const base64Data = data.split(';base64,').pop();
+        const type = data.match(/^data:(.*?);/)[1];
         // Extract the file extension from the name
         const fileName = `${Date.now()}_${name}`;
 
@@ -29,7 +30,9 @@ async function uploadFiles(files, idStudent) {
                         // save the file name in document bd
                         await db.document.create({
                             documentName: fileName,
-                            studentID: idStudent
+                            studentID: idStudent,
+                            type: type
+
                         });
                     }
                 });
@@ -154,6 +157,26 @@ const updateStudent = async (req, res, next) => {
             });
 
         }
+        // delete old fils
+        const oldFiles = await db.document.findAll({
+            where: { studentID: sudentid }
+        });
+        const documents = Object.values(oldFiles);
+        for (const doc of documents) {
+            const pathName = path.join("uploads/studentsFiles/", doc.documentName);
+            try {
+                if (fs.existsSync(pathName)) {
+                    fs.unlinkSync(pathName);
+                }
+            } catch (error) {
+                console.error(error);
+            }
+        }
+        await db.document.destroy({
+            where: { studentID: sudentid }
+        });
+        // uploud new files
+        await uploadFiles(data.files, sudentid);
         // Now update the person using the personId from the student record
         try {
             await db.person.update({
@@ -188,7 +211,13 @@ const updateStudent = async (req, res, next) => {
             isActive: data.status
         }, {
             where: { ID_ROWID: sudentid }
-
+        });
+        // update student educ level
+        await db.studentLevel.update({
+            levelID: data.levelID,
+            yearID: data.yearID
+        }, {
+            where: { studentID: sudentid }
         })
         return res.send({
             message: `Student '${data.firstName} ${data.lastName}' has been updated successfully.`,
@@ -271,8 +300,20 @@ const listStudents = async (req, res, next) => {
                     model: db.person,
                     as: 'personProfile2',  // Alias you set in associations
                     attributes: ['firstName', 'lastName', 'mail', 'phoneNumber', 'dateOfBirth', 'imagePath'] // specify the attributes you want
+                },
+                {
+                    model: db.studentLevel,
+                    include: [ // Assuming you want to also fetch the associated person details for each student
+                        {
+                            model: db.educationalLevel,
+                        },
+                        {
+                            model: db.studyYear,
+                            required: false
+                        },
+                    ]
+                },
 
-                }
             ]
         });
         for (const user of students) {
@@ -488,12 +529,43 @@ const getStudentData = async (req, res, next) => {
             include: [{
                 model: db.person,
                 as: 'personProfile2'
-            }]
+            },
+            {
+                model: db.studentLevel,
+                include: [ // Assuming you want to also fetch the associated person details for each student
+                    {
+                        model: db.educationalLevel,
+                    },
+                    {
+                        model: db.studyYear,
+                        required: false
+                    },
+                ]
+            }, {
+                model: db.document,
+                required: false
+            },
+            ]
         });
+        const files = [];
+        const documents = Object.values(userStudent.documents);
+
+        for (const doc of documents) {
+            const pathName = path.join("uploads/studentsFiles/", doc.documentName);
+            try {
+                await fs.promises.access(pathName, fs.constants.F_OK);
+                const data = await fs.promises.readFile(pathName);
+                files.push({ "data": data, "name": doc.documentName, "type": doc.type });
+            } catch (error) {
+                console.error(error);
+            }
+        }
+
+        console.log(files);
         // Process the image if it exists
+
         if (userStudent.personProfile2.imagePath) {
             const photoPath = path.join("uploads/profileImage/", userStudent.personProfile2.imagePath);
-
             try {
                 await fs.promises.access(photoPath, fs.constants.F_OK);
                 userStudent.personProfile2.imagePath = await fs.promises.readFile(photoPath); // read the photo file contents
@@ -506,6 +578,7 @@ const getStudentData = async (req, res, next) => {
         res.send({
             message: "succes",
             student: userStudent,
+            files: files,
             code: 200,
         });
     } catch (error) {

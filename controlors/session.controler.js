@@ -151,13 +151,12 @@ async function getAvailableClass(date, timeStart, timeFinish, classes) {
             const eTStart = new Date(`1970-01-01T${session.endAt}`);
             return start < eTStart && end > sTStart;
         })
-        .map(session => session.groupID);
+        .map(session => session.classID);
 
     // Find classes that are not reserved during the specified time range
     const inReservedClasses = classes
         .filter(classe => !reservedClasses.includes(classe.ID_ROWID))
         .map(classe => ({ "id": classe.ID_ROWID, "name": classe.className }));
-
     return inReservedClasses;
 }
 
@@ -485,6 +484,46 @@ const getAllSessionsForStudent = async (req, res, next) => {
         });
     }
 }
+
+
+// update session
+const updateSession = async (req, res, next) => {
+    try {
+        const { eventID, date, startAt, endAt } = req.body.data;
+        // find if ther is any available classes in this date and time
+        // get all classes
+        const classes = await db.class.findAll({
+            attributes: ['ID_ROWID', 'className']
+        });
+        const result = await getAvailableClass(date, startAt, endAt, classes);
+        if (result.length === 0) {
+            return res.send({
+                message: "Error updating the session",
+                code: 401,
+            });
+        }
+
+        await db.session.update({
+            date: date,
+            startAt: startAt,
+            endAt: endAt,
+            classID: result[0].id
+        }, {
+            where: { ID_ROWID: eventID }
+        });
+        return res.send({
+            message: "Session updated successfully",
+            code: 200,
+        });
+    } catch (error) {
+        console.log(error)
+        return res.send({
+            message: "Error updating the session",
+            code: 500,
+            error: error.message
+        });
+    }
+}
 module.exports = {
     getAvailableData,
     addSessions,
@@ -492,5 +531,6 @@ module.exports = {
     deleteSession,
     getAllSessionsForSalle,
     getAllSessions,
-    getAllSessionsForStudent
+    getAllSessionsForStudent,
+    updateSession
 };

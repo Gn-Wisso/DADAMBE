@@ -51,6 +51,31 @@ const addProgram = async (req, res, next) => {
                 program.EndInsciptionDate = inscriptionEndDay;
                 program.save();
             }
+            else if (type == "activity") {
+                const { timing, type, ageGroup, emplacement } = req.body.dataType
+                await db.activity.create({
+                    timing: timing,
+                    type: type,
+                    ageGroup: ageGroup,
+                    emplacement: emplacement,
+                    progId: program.ID_ROWID
+                });
+                program.EndInsciptionDate = inscriptionEndDay;
+                program.save();
+            }
+            else if (type == "workshop") {
+                const { startDate, endDate, isLimited, nbrStudent, Materials } = req.body.dataType
+                await db.workshop.create({
+                    startDate: startDate,
+                    endDate: endDate,
+                    isLimited: isLimited,
+                    nbrStudent: nbrStudent,
+                    Materials: Materials,
+                    progId: program.ID_ROWID
+                });
+                program.EndInsciptionDate = inscriptionEndDay;
+                program.save();
+            }
         }
         // Return a success message along with the ID of the newly created program
         return res.send({
@@ -91,6 +116,12 @@ const updateProgram = async (req, res, next) => {
                 {
                     model: db.cour,
                 },
+                {
+                    model: db.activity,
+                },
+                {
+                    model: db.workshop,
+                },
             ]
         });
         if (!programData.isSkiped) {
@@ -105,6 +136,18 @@ const updateProgram = async (req, res, next) => {
                     where: { ID_ROWID: programData.cour.ID_ROWID }
                 });
                 programData.cour = null;
+            }
+            else if (programData.type == "activity" && programData.activity) {
+                await db.activity.destroy({
+                    where: { ID_ROWID: programData.activity.ID_ROWID }
+                });
+                programData.activity = null;
+            }
+            else if (programData.type == "workshop" && programData.workshop) {
+                await db.workshop.destroy({
+                    where: { ID_ROWID: programData.workshop.ID_ROWID }
+                });
+                programData.workshop = null;
             }
         }
 
@@ -122,7 +165,7 @@ const updateProgram = async (req, res, next) => {
         if (!isSkip) {
             if (type == "formation") {
                 const { startDay, endDay, inscriptionEndDay, isLimited, nbrParticipat } = req.body.dataType
-                const formation = await db.formation.create({
+                await db.formation.create({
                     startDate: startDay,
                     endDate: endDay,
                     isLimited: isLimited,
@@ -134,9 +177,34 @@ const updateProgram = async (req, res, next) => {
             }
             else if (type == "cour") {
                 const { inscriptionEndDay, nbrSession, hoursBySession } = req.body.dataType
-                const cour = await db.cour.create({
+                await db.cour.create({
                     sessionTiming: hoursBySession,
                     sessionsNumber: nbrSession,
+                    progId: programData.ID_ROWID
+                });
+                programData.EndInsciptionDate = inscriptionEndDay;
+                programData.save();
+            }
+            else if (type == "activity") {
+                const { timing, type, ageGroup, emplacement } = req.body.dataType
+                await db.activity.create({
+                    timing: timing,
+                    type: type,
+                    ageGroup: ageGroup,
+                    emplacement: emplacement,
+                    progId: programData.ID_ROWID
+                });
+                programData.EndInsciptionDate = inscriptionEndDay;
+                programData.save();
+            }
+            else if (type == "workshop") {
+                const { startDate, endDate, isLimited, nbrStudent, Materials } = req.body.dataType
+                await db.workshop.create({
+                    startDate: startDate,
+                    endDate: endDate,
+                    isLimited: isLimited,
+                    nbrStudent: nbrStudent,
+                    Materials: Materials,
                     progId: programData.ID_ROWID
                 });
                 programData.EndInsciptionDate = inscriptionEndDay;
@@ -166,22 +234,32 @@ const removeProgram = async (req, res, next) => {
         const programId = req.params.id;
 
         const programme = await db.program.findByPk(programId);
-        if(programme){
-               // Delete payments associated with the program
-        await db.payment.destroy({
-            where: { progID: programId }
-        });
-        
-        if (programme.type == "formation") {
-            await db.formation.destroy({
+        if (programme) {
+            // Delete payments associated with the program
+            await db.payment.destroy({
                 where: { progID: programId }
-            })
-        } else if (programme.type == "cour") {
-            await db.cour.destroy({
-                where: { progID: programId }
-            })
+            });
+
+            if (programme.type == "formation") {
+                await db.formation.destroy({
+                    where: { progID: programId }
+                })
+            } else if (programme.type == "cour") {
+                await db.cour.destroy({
+                    where: { progID: programId }
+                })
+            }
+            else if (programme.type == "activity") {
+                await db.activity.destroy({
+                    where: { progID: programId }
+                })
+            }
+            else if (programme.type == "workshop") {
+                await db.workshop.destroy({
+                    where: { progID: programId }
+                })
+            }
         }
-    }
         // Delete the program record from the database
         await db.program.destroy({
             where: { ID_ROWID: programId }
@@ -263,6 +341,26 @@ const getProgram = async (req, res, next) => {
                 ]
             });
             data = progWithCour.cour;
+        }
+        else if (program.type == "activity") {
+            const progWithCour = await db.program.findByPk(programId, {
+                include: [
+                    {
+                        model: db.activity,
+                    }
+                ]
+            });
+            data = progWithCour.activity;
+        }
+        else if (program.type == "workshop") {
+            const progWithCour = await db.program.findByPk(programId, {
+                include: [
+                    {
+                        model: db.workshop,
+                    }
+                ]
+            });
+            data = progWithCour.workshop;
         }
         return res.send({
             message: `fetch Data avec succes`,

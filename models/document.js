@@ -11,6 +11,10 @@ module.exports = function (sequelize, DataTypes) {
             type: DataTypes.STRING,
             allowNull: true
         },
+        type: {
+            type: DataTypes.STRING,
+            allowNull: true
+        },
 
     },);
     document.associate = models => {

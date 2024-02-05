@@ -146,7 +146,7 @@ const deleteEducationLevel = async (req, res, next) => {
             }
         })
         if (result.length !== 0) {
-            res.send({
+            return res.send({
                 message: "we Can't delete this level because he is allready used by students",
                 code: 401
             });
@@ -185,7 +185,7 @@ const deleteStudyYear = async (req, res, next) => {
             }
         })
         if (result.length !== 0) {
-            res.send({
+            return res.send({
                 message: "we Can't delete this level because he is allready used by students",
                 code: 400
             });
