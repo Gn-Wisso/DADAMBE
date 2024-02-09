@@ -13,14 +13,6 @@ module.exports = function (sequelize, DataTypes) {
             type: DataTypes.TIME,
             allowNull: true // Assuming this is optional
         },
-        type: {
-            type: DataTypes.STRING,
-            allowNull: true
-        },
-        ageGroup: {
-            type: DataTypes.STRING,
-            allowNull: true
-        },
         emplacement: {
             type: DataTypes.STRING,
             allowNull: true
