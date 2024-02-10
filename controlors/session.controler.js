@@ -99,19 +99,21 @@ function getDatesForCodeDayBetween(dateStart, dateEnd, dayCode) {
 function divideTimeInterval(startTime, endTime, duration, intervals) {
     const start = new Date(`1970-01-01T${startTime}`);
     const end = new Date(`1970-01-01T${endTime}`);
+     console.log("hiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiii");
+     console.log(startTime);
+     console.log(endTime);
+     if (!duration) {
+        const [hours1, minutes1] = startTime.split(':').map(Number);
+        const [hours2, minutes2] = endTime.split(':').map(Number);
 
-    if (!duration) {
-        const [hours1, minutes1, ampm1] = startTime.match(/(\d+):(\d+) ([APMapm]{2})/).slice(1);
-        const [hours2, minutes2, ampm2] = endTime.match(/(\d+):(\d+) ([APMapm]{2})/).slice(1);
-
-        const totalMinutes1 = (parseInt(hours1) % 12 + (ampm1.toUpperCase() === 'PM' ? 12 : 0)) * 60 + parseInt(minutes1);
-        const totalMinutes2 = (parseInt(hours2) % 12 + (ampm2.toUpperCase() === 'PM' ? 12 : 0)) * 60 + parseInt(minutes2);
-
+        const totalMinutes1 = (hours1 * 60) + minutes1;
+        const totalMinutes2 = (hours2 * 60) + minutes2;
         let intervalMinutes = Math.abs(totalMinutes2 - totalMinutes1);
         // Calculate hours and remaining minutes
         const hours = Math.floor(intervalMinutes / 60);
         const minutes = intervalMinutes % 60;
         duration = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+
     }
 
     const durationParts = duration.split(':');
@@ -531,6 +533,87 @@ const updateSession = async (req, res, next) => {
         });
     }
 }
+const getAllSessionsForTeacher = async (req, res, next) => {
+    try {
+        const { id } = req.body;
+        if (!id) {
+            return res.send({
+                message: "Error to fetch Session",
+                code: 400,
+            });
+        }
+        
+        const data = await db.teacherGroup.findAll({
+            where: {
+                TeacherID: id
+            },
+            include: [
+                {
+                    model: db.groupe,
+                    as: 'group',
+                    include: [
+                        {
+                            model: db.program // Corrected from db.programme
+                        },
+                        {
+                            model: db.session,
+                            include: {
+                                model: db.class
+                            }
+                        }
+                    ]
+                },
+                {
+                    model: db.teacher,
+                    as: 'teacher'
+                }
+            ]
+        });
+console.log(data);
+        const events = [];
+        if (data && data.length > 0) {
+         
+            data.forEach(teacherGroup => {
+                
+                if (teacherGroup.group && teacherGroup.group.program && teacherGroup.group.sessions) {           
+console.log("------------------------------------------------------------------------");
+                    teacherGroup.group.sessions.forEach(session => {
+
+                        const { ID_ROWID: sessionId, startAt, endAt, date, class: className, ID_ROWID } = session;
+                        events.push({
+                            id: sessionId,
+                            title: `Programme ${teacherGroup.group.program.title} - Groupe ${teacherGroup.group.GroupeName} - Salle ${className}`,
+                            start: new Date(`${date} ${startAt}`),
+                            end: new Date(`${date} ${endAt}`),
+                            groupID: ID_ROWID,
+                            groupName: teacherGroup.group.GroupeName,
+                            // Add other event properties as needed
+                        });
+                    });
+                }
+            });
+        } else {
+            console.log("No data found or data is empty.");
+        }
+        
+
+        return res.send({
+            events: events,
+            message: "Sessions fetch successfully",
+            code: 200,
+        });
+    } catch (error) {
+        console.log(error);
+        return res.send({
+            message: "Error to fetch sessions",
+            code: 500,
+            error: error.message,
+        });
+    }
+};
+
+
+
 module.exports = {
     getAvailableData,
     addSessions,
@@ -539,5 +622,6 @@ module.exports = {
     getAllSessionsForSalle,
     getAllSessions,
     getAllSessionsForStudent,
-    updateSession
+    updateSession,
+    getAllSessionsForTeacher,
 };

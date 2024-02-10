@@ -11,6 +11,8 @@ routeSession.post("/deleteSession", jsonParser, sessionController.deleteSession)
 routeSession.post("/getAllSessionsForSalle", jsonParser, sessionController.getAllSessionsForSalle);
 routeSession.post("/getAllSessions", jsonParser, sessionController.getAllSessions);
 routeSession.post("/getAllSessionsForStudent", jsonParser, sessionController.getAllSessionsForStudent);
+routeSession.post("/getAllSessionsForTeacher", jsonParser, sessionController.getAllSessionsForTeacher);
+
 routeSession.post("/updateSession", jsonParser, sessionController.updateSession);
 
 module.exports = routeSession;

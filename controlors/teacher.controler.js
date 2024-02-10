@@ -328,6 +328,73 @@ const listTeachersForGroup = async (req, res, next) => {
     }
 };
 
+const getTeacherData = async (req, res, next) => {
+    try {
+        const id = req.body.id;
+        if (!id) {
+            return res.send({
+                message: "the id undefined",
+                code: 400,
+            });
+        }
+        // Get the teacher 
+        const userTeacher = await db.teacher.findByPk(id, {
+            include: [{
+                model: db.person,
+                as: 'personProfile2'
+            },
+          /*  {
+                model: db.document,
+                required: false
+            },*/
+            ]
+        });
+    /*    const files = [];
+        const documents = Object.values(userTeacher.documents);
+
+        for (const doc of documents) {
+            const pathName = path.join("uploads/teacherFiles/", doc.documentName);
+            try {
+                await fs.promises.access(pathName, fs.constants.F_OK);
+                const data = await fs.promises.readFile(pathName);
+                files.push({ "data": data, "name": doc.documentName, "type": doc.type });
+            } catch (error) {
+                console.error(error);
+            }
+        }
+
+        console.log(files);*/
+        // Process the image if it exists
+
+        if (userTeacher.personProfile2.imagePath) {
+            const photoPath = path.join("uploads/profileImage/", userTeacher.personProfile2.imagePath);
+            try {
+                await fs.promises.access(photoPath, fs.constants.F_OK);
+                userTeacher.personProfile2.imagePath = await fs.promises.readFile(photoPath); // read the photo file contents
+            } catch (error) {
+                console.error(error);
+                userTeacher.personProfile2.imagePath = null;
+            }
+        }
+
+        res.send({
+            message: "success",
+            teacher: userTeacher,
+          //  files: files,
+            code: 200,
+        });
+    } catch (error) {
+        console.log(error);
+        res.send({
+            message: "An error occurred",
+            error: error.message,
+            code: 400,
+        });
+        throw error;
+    }
+}
+
+
 module.exports = {
     addTeacher,
     updateTeacher,
@@ -335,6 +402,7 @@ module.exports = {
     listTeachers,
     ExploreSearch,
     listTeachersForGroup,
+    getTeacherData
 };
 
 
