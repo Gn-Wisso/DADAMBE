@@ -16,14 +16,6 @@ async function addPerson(data) {
         }
         let imagePath = '';
 
-        const existingUser = await db.person.findOne({ where: { mail: mail } });
-
-        if (existingUser) {
-            return {
-                message: 'Email already in use',
-                code: 409
-            };
-        }
         if (image) {
             // Decode the Base64-encoded image data
             const base64Image = image.split(';base64,').pop();

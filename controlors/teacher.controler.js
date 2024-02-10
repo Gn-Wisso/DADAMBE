@@ -16,6 +16,21 @@ const addTeacher = async (req, res, next) => {
         // to create person :(firstName, lastName, mail, phoneNumber, dateOfBirth)
         // to create student we need to generat a code from his name and his date of birth
         const reqData = req.body.data;
+            // Check if the email already exists for a teacher
+            const existingTeacher = await db.teacher.findOne({
+                include: [{
+                    model: db.person,
+                    as:'personProfile2',
+                    where: { mail: reqData.mail }
+                }]
+            });
+            if (existingTeacher) {
+                return res.send({
+                    message: "Email already exists for another teacher.",
+                    code: 400
+                });
+            }
+    
         const result = await addPerson(reqData);
         if (result.code === 400 || result.code === 409) {
             return res.send({
@@ -37,10 +52,7 @@ const addTeacher = async (req, res, next) => {
             // You might want to modify the generateStudentCode function or come up with a different mechanism for this.
             generatedCode = generateStudentCode(reqData.firstName, reqData.lastName, reqData.dateOfBirth, reqData.email) + Math.floor(Math.random() * 1000);
         }
-        // find a way to create it using user first & last name , date of birth , the actual date 
-        /******* */
-
-        // create the student 
+     
         await db.teacher.create({
             TeacherID: generatedCode,
             personId: result,
@@ -79,6 +91,21 @@ const updateTeacher = async (req, res, next) => {
             }]
         });
         const oldImageName = teacherRecord.personProfile2.imagePath;
+          // Check if the email already exists for another teacher
+          const existingTeacher = await db.teacher.findOne({
+            include: [{
+                model: db.person,
+                as:'personProfile2',
+                where: { mail: data.mail }
+            }]
+        });
+      
+        if (existingTeacher && existingTeacher.ID_ROWID !== teacherRecord.ID_ROWID) {
+            return res.send({
+                message: "Email already exists for another teacher.",
+                code: 400
+            });
+        }
         // delete old image if it exicte 
         if (oldImageName != null && oldImageName != "") {
             // Delete the existing image file (if it exists)

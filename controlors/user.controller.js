@@ -27,6 +27,20 @@ const addUser = async (req, res, next) => {
         // to create person :(firstName, lastName, mail, phoneNumber, dateOfBirth)
         // to create user we need to generat a code from his name and his date of birth
         const reqData = req.body.data;
+               // Check if the email already exists for a user
+               const existinguser = await db.user.findOne({
+                include: [{
+                    model: db.person,
+                    as:'personProfile',
+                    where: { mail: reqData.mail }
+                }]
+            });
+            if (existinguser) {
+                return res.send({
+                    message: "Email already exists for another user.",
+                    code: 400
+                });
+            }
         const result = await addPerson(reqData);
         if (result.code === 400 || result.code === 409) {
             return res.send({
@@ -269,6 +283,21 @@ const updateGeneralUserData = async (req, res, next) => {
                 as: 'personProfile'
             }]
         });
+              // Check if the email already exists for another teacher
+              const existinguser = await db.user.findOne({
+                include: [{
+                    model: db.person,
+                    as:'personProfile',
+                    where: { mail: mail }
+                }]
+            });
+          
+            if (existinguser && existinguser.ID_ROWID !== user.ID_ROWID) {
+                return res.send({
+                    message: "Email already exists for another user.",
+                    code: 400
+                });
+            }
         const oldImageName = user.personProfile.imagePath;
         // delete old image if it exicte 
         if (oldImageName != null && oldImageName != "") {
