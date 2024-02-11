@@ -28,7 +28,7 @@ routeSession.post(
 routeSession.post(
   "/getAllSessions",
   jsonParser,
-  sessionController.getSessionsInLast4Days
+  sessionController.getAllSessions
 );
 routeSession.post(
   "/getAllSessionsForStudent",
@@ -40,5 +40,14 @@ routeSession.post(
   jsonParser,
   sessionController.updateSession
 );
-
+routeSession.post(
+  "/getSessionsInLast4Days",
+  jsonParser,
+  sessionController.getSessionsInLast4Days
+);
+routeSession.post(
+  "/getAllSessionsInLastDays",
+  jsonParser,
+  sessionController.getAllSessionsInLastDays
+);
 module.exports = routeSession;

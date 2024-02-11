@@ -18,5 +18,10 @@ module.exports = function (sequelize, DataTypes) {
       },
     }
   );
+  studentAttendanceRecording.associate = (models) => {
+    studentAttendanceRecording.hasMany(models.paymentSessionMode, {
+      foreignKey: "StudentAttRecID",
+    });
+  };
   return studentAttendanceRecording;
 };

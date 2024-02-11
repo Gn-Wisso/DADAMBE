@@ -73,6 +73,10 @@ module.exports = function (sequelize, DataTypes) {
       through: models.studentAttendanceRecording,
       foreignKey: "studentID", // Using the correct primary key name for teacher
     });
+    student.hasMany(models.bill, {
+      foreignKey: "studentID",
+      allowNull: false,
+    });
   };
   return student;
 };

@@ -665,6 +665,8 @@ const getSessionsInLast4Days = async (req, res, next) => {
       // Create events based on session data
       events.push({
         id: sessionId, // Unique identifier for the event
+        isAchieved: session.isAchieved,
+        date: date,
         title: `Programme ${progDetails} - Groupe ${groupeDetails} - Salle ${salleDetails}`, // Event title combining group and class details
         start: new Date(`${date} ${startAt}`), // Combine date and time for start
         end: new Date(`${date} ${endAt}`), // Combine date and time for end
@@ -672,6 +674,8 @@ const getSessionsInLast4Days = async (req, res, next) => {
         // Add other event properties as needed
       });
     });
+    // Sort events by start date in descending order
+    events.sort((a, b) => b.start - a.start);
     return res.send({
       events: events,
       message: "Sessions fetch successfully",
@@ -686,7 +690,76 @@ const getSessionsInLast4Days = async (req, res, next) => {
     });
   }
 };
+/** get session history in the last 4 days  */
+const getAllSessionsInLastDays = async (req, res, next) => {
+  try {
+    const data = await db.session.findAll({
+      include: [
+        {
+          model: db.groupe,
+          attributes: ["ID_ROWID", "GroupeName"],
+          required: false,
+          include: {
+            model: db.program,
+            attributes: ["ID_ROWID", "title"],
+            required: false,
+          },
+        },
+        {
+          model: db.class,
+          attributes: ["ID_ROWID", "className"],
+          required: false,
+        },
+      ],
+    });
 
+    const events = [];
+    const currentDate = new Date();
+    currentDate.setHours(0, 0, 0, 0);
+    data.forEach((session) => {
+      // Extract session details
+      const { ID_ROWID: sessionId, startAt, endAt, date } = session;
+      if (new Date(`${date} ${endAt}`) < currentDate) {
+        // Extract class details if available
+        const salleDetails = session.class
+          ? session.class.className
+          : "non défini";
+        const groupeDetails = session.groupe
+          ? session.groupe.GroupeName
+          : "No Groupe";
+        const progDetails =
+          session.groupe && session.groupe.program
+            ? session.groupe.program.title
+            : "No programme";
+        // Create events based on session data
+        events.push({
+          id: sessionId, // Unique identifier for the event
+          isAchieved: session.isAchieved,
+          date: date,
+          title: `Programme ${progDetails} - Groupe ${groupeDetails} - Salle ${salleDetails}`, // Event title combining group and class details
+          start: new Date(`${date} ${startAt}`), // Combine date and time for start
+          end: new Date(`${date} ${endAt}`), // Combine date and time for end
+          groupID: session.groupID,
+          // Add other event properties as needed
+        });
+      }
+    });
+    // Sort events by start date in descending order
+    events.sort((a, b) => b.start - a.start);
+    return res.send({
+      events: events,
+      message: "Sessions fetch successfully",
+      code: 200,
+    });
+  } catch (error) {
+    console.log(error);
+    return res.send({
+      message: "Error to fetch sessions",
+      code: 500,
+      error: error.message,
+    });
+  }
+};
 function getLastFourDays() {
   const today = new Date();
   const lastFourDays = [];
@@ -709,4 +782,5 @@ module.exports = {
   getAllSessionsForStudent,
   updateSession,
   getSessionsInLast4Days,
+  getAllSessionsInLastDays,
 };
