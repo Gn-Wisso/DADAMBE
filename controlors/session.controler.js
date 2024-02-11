@@ -114,6 +114,7 @@ function getDatesForCodeDayBetween(dateStart, dateEnd, dayCode) {
 }
 
 function divideTimeInterval(startTime, endTime, duration, intervals) {
+<<<<<<< HEAD
   const start = new Date(`1970-01-01T${startTime}`);
   const end = new Date(`1970-01-01T${endTime}`);
 
@@ -157,6 +158,25 @@ function divideTimeInterval(startTime, endTime, duration, intervals) {
         start: subIntervalStart.toISOString().substr(11, 5), // Extract HH:mm
         end: subIntervalEnd.toISOString().substr(11, 5),
       });
+=======
+    const start = new Date(`1970-01-01T${startTime}`);
+    const end = new Date(`1970-01-01T${endTime}`);
+     console.log("hiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiii");
+     console.log(startTime);
+     console.log(endTime);
+     if (!duration) {
+        const [hours1, minutes1] = startTime.split(':').map(Number);
+        const [hours2, minutes2] = endTime.split(':').map(Number);
+
+        const totalMinutes1 = (hours1 * 60) + minutes1;
+        const totalMinutes2 = (hours2 * 60) + minutes2;
+        let intervalMinutes = Math.abs(totalMinutes2 - totalMinutes1);
+        // Calculate hours and remaining minutes
+        const hours = Math.floor(intervalMinutes / 60);
+        const minutes = intervalMinutes % 60;
+        duration = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+
+>>>>>>> d1c5a4dd47476a77be835379e60cd869c7dcf3fb
     }
 
     current = subIntervalEnd;

@@ -21,6 +21,7 @@ module.exports = function (sequelize, DataTypes) {
         groupe.belongsToMany(models.teacher, {
             through: models.teacherGroup,
             foreignKey: 'GroupeID', // Using the correct primary key name for teacher
+            onDelete: 'CASCADE', // This is the key part for cascading delete
         });
         // a group can have many students
         groupe.belongsToMany(models.student, {

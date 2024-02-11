@@ -1,8 +1,5 @@
-const Sequelize = require('sequelize');
-
 module.exports = function (sequelize, DataTypes) {
     const teacherGroup = sequelize.define('teacherGroup', {
-        // Assuming an auto-incremented primary key for the registrations table like wisso did
         ID_ROWID: {
             autoIncrement: true,
             type: DataTypes.BIGINT,
@@ -10,6 +7,20 @@ module.exports = function (sequelize, DataTypes) {
             primaryKey: true
         },
     });
+
+    teacherGroup.associate = models => {
+        teacherGroup.belongsTo(models.teacher, {
+            foreignKey: 'TeacherID',
+            as: 'teacher', // alias for the relation
+            onDelete: 'CASCADE'
+        });
+
+        teacherGroup.belongsTo(models.groupe, {
+            foreignKey: 'GroupeID',
+            as: 'group', // alias for the relation
+            onDelete: 'CASCADE'
+        });
+    };
 
     return teacherGroup;
 };
