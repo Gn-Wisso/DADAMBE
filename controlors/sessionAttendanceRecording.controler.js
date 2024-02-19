@@ -13,15 +13,14 @@ const getSessionAttendanceRecording = async (req, res, next) => {
         code: 409,
       });
     }
-
     // get student Attendance Recording
-    const studentAttResList = await db.studentAttendanceRecording({
+    const studentAttResList = await db.studentAttendanceRecording.findAll({
       where: {
         sessionID: id,
       },
     });
     // get teacher Attendance Recording
-    const teacherAttResList = await db.teacherAttendanceRecording({
+    const teacherAttResList = await db.teacherAttendanceRecording.findAll({
       where: {
         sessionID: id,
       },
@@ -31,7 +30,7 @@ const getSessionAttendanceRecording = async (req, res, next) => {
     const session = await db.session.findByPk(id, {
       include: {
         model: db.groupe,
-        attributes: ["ID_ROWID"],
+        attributes: ["ID_ROWID", "GroupeName"],
         include: [
           {
             model: db.student,
@@ -53,6 +52,11 @@ const getSessionAttendanceRecording = async (req, res, next) => {
               attributes: ["firstName", "lastName"], // specify the attributes you want
             },
           },
+          {
+            model: db.program,
+            attributes: ["ID_ROWID", "title"],
+            required: false,
+          },
         ],
       },
     });
@@ -67,27 +71,21 @@ const getSessionAttendanceRecording = async (req, res, next) => {
       code: 200,
     });
   } catch (error) {
-    return res.send({
+    res.send({
       message:
         "An error occurred while fetching the Session Attendance Recording.",
       error: error.message,
       code: 400,
     });
+    console.log(error);
   }
 };
 
 const updateSessionAttendanceRecording = async (req, res, next) => {
   try {
-    const { id } = req.params.id; // session id
-    const { studentList, teacherList, nbrStudent, isAchieved, idProg } =
-      req.body;
+    const { studentList, teacherList, idProg, id } = req.body.data;
     // Check if the necessary data (title) is provided
-    if (!id) {
-      return res.send({
-        message: "Error! id is required.",
-        code: 409,
-      });
-    }
+
     // get program type of paiment
     const prog = await db.program.findByPk(idProg, {
       attributes: ["typeOfPaiment"],
@@ -141,28 +139,127 @@ const updateSessionAttendanceRecording = async (req, res, next) => {
       await db.teacherAttendanceRecording.create({
         teacherID: teacher.id,
         sessionID: id,
-        NumberOfAttendees: nbrStudent,
+        NumberOfAttendees: studentList ? studentList.lenght : 0,
       });
     });
     // update session
-    await db.session.update({
-      isAchieved: isAchieved,
-    });
+    await db.session.update(
+      {
+        isAchieved: true,
+      },
+      {
+        where: {
+          ID_ROWID: id,
+        },
+      }
+    );
     return res.send({
       message: `Session Attendance Recording is updated successfully.`,
       code: 200,
     });
   } catch (error) {
-    return res.send({
+    res.send({
       message:
         "An error occurred while updated the Session Attendance Recording.",
       error: error.message,
       code: 400,
     });
+    console.log(error);
   }
 };
 
+const getSessionAttendanceRecordingForStuent = async (req, res, next) => {
+  try {
+    const { id } = req.params; // student id
+    // Check if the necessary data (title) is provided
+    if (!id) {
+      return res.send({
+        message: "Error! id is required.",
+        code: 409,
+      });
+    }
+    // get all sessions thas student is recorded in it
+
+    const studentData = await db.student.findByPk(id, {
+      attributes: ["ID_ROWID"],
+      include: [
+        {
+          model: db.session,
+          required: false,
+          through: {
+            model: db.studentAttendanceRecording,
+            attributes: ["isPaid"], // Include the isPaid attribute
+          },
+          include: [
+            {
+              model: db.groupe,
+              attributes: ["ID_ROWID", "GroupeName"],
+              include: {
+                model: db.program,
+                attributes: ["ID_ROWID", "title"],
+                required: false,
+              },
+            },
+            {
+              model: db.class,
+              attributes: ["ID_ROWID", "className"],
+              required: false,
+            },
+          ],
+        },
+      ],
+    });
+    const events = [];
+    const currentDate = new Date();
+    currentDate.setHours(0, 0, 0, 0);
+    studentData?.sessions.forEach((session) => {
+      // Extract session details
+      const { ID_ROWID: sessionId, startAt, endAt, date } = session;
+      if (new Date(`${date} ${endAt}`) < currentDate) {
+        // Extract class details if available
+        const salleDetails = session.class
+          ? session.class.className
+          : "non défini";
+        const groupeDetails = session.groupe
+          ? session.groupe.GroupeName
+          : "No Groupe";
+        const progDetails =
+          session.groupe && session.groupe.program
+            ? session.groupe.program.title
+            : "No programme";
+        // Create events based on session data
+        events.push({
+          id: sessionId, // Unique identifier for the event
+          date: date,
+          sortDate: new Date(`${date} ${startAt}`),
+          title: `Programme ${progDetails} - Groupe ${groupeDetails} - Salle ${salleDetails}`, // Event title combining group and class details
+          start: startAt, // Combine date and time for start
+          end: endAt, // Combine date and time for end
+          prog: { id: session.groupe.program.ID_ROWID, name: progDetails },
+          isPaid: session?.studentAttendanceRecording?.isPaid,
+          // Add other event properties as needed
+        });
+      }
+    });
+    // Sort events by start date in descending order
+    events.sort((a, b) => b.sortDate - a.sortDate);
+    return res.send({
+      message: `Session Attendance Recording is fetch successfully.`,
+      sessionAttRec: events,
+      code: 200,
+    });
+  } catch (error) {
+    res.send({
+      message:
+        "An error occurred while fetching the Session Attendance Recording.",
+      error: error.message,
+      code: 400,
+    });
+    console.log(error);
+  }
+};
 module.exports = {
   getSessionAttendanceRecording,
   updateSessionAttendanceRecording,
+  getSessionAttendanceRecordingForStuent,
 };

@@ -5,7 +5,7 @@ const sessionAttRecController = require("../controlors/sessionAttendanceRecordin
 var jsonParser = bodyParser.json();
 // Route for adding a new category
 routeSessionAttRec.get(
-  "/getSessionAttendanceRecording",
+  "/getSessionAttendanceRecording/:id",
   jsonParser,
   sessionAttRecController.getSessionAttendanceRecording
 );
@@ -14,5 +14,9 @@ routeSessionAttRec.put(
   jsonParser,
   sessionAttRecController.updateSessionAttendanceRecording
 );
-
+routeSessionAttRec.get(
+  "/getSessionAttendanceRecordingForStuent/:id",
+  jsonParser,
+  sessionAttRecController.getSessionAttendanceRecordingForStuent
+);
 module.exports = routeSessionAttRec;

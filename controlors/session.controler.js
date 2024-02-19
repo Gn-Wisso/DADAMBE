@@ -618,7 +618,7 @@ const getSessionsInLast4Days = async (req, res, next) => {
       include: [
         {
           model: db.groupe,
-          attributes: ["ID_ROWID", "GroupeName"],
+          attributes: ["ID_ROWID", "GroupeName", "progID"],
           required: false,
           include: {
             model: db.program,
@@ -655,17 +655,20 @@ const getSessionsInLast4Days = async (req, res, next) => {
         id: sessionId, // Unique identifier for the event
         isAchieved: session.isAchieved,
         date: date,
+        sortDate: new Date(`${date} ${startAt}`),
         title: `Programme ${progDetails} - Groupe ${groupeDetails} - Salle ${salleDetails}`, // Event title combining group and class details
-        start: new Date(`${date} ${startAt}`), // Combine date and time for start
-        end: new Date(`${date} ${endAt}`), // Combine date and time for end
-        groupID: session.groupID,
+        start: startAt, // Combine date and time for start
+        end: endAt, // Combine date and time for end
+        group: { id: session.groupID, name: groupeDetails },
+        prog: { id: session.groupe.progID, name: progDetails },
         // Add other event properties as needed
       });
     });
     // Sort events by start date in descending order
-    events.sort((a, b) => b.start - a.start);
+    events.sort((a, b) => b.sortDate - a.sortDate);
     return res.send({
       events: events,
+      lastFourDays,
       message: "Sessions fetch successfully",
       code: 200,
     });
@@ -685,7 +688,7 @@ const getAllSessionsInLastDays = async (req, res, next) => {
       include: [
         {
           model: db.groupe,
-          attributes: ["ID_ROWID", "GroupeName"],
+          attributes: ["ID_ROWID", "GroupeName", "progID"],
           required: false,
           include: {
             model: db.program,
@@ -725,15 +728,18 @@ const getAllSessionsInLastDays = async (req, res, next) => {
           isAchieved: session.isAchieved,
           date: date,
           title: `Programme ${progDetails} - Groupe ${groupeDetails} - Salle ${salleDetails}`, // Event title combining group and class details
-          start: new Date(`${date} ${startAt}`), // Combine date and time for start
-          end: new Date(`${date} ${endAt}`), // Combine date and time for end
-          groupID: session.groupID,
+          start: startAt, // Combine date and time for start
+          end: endAt, // Combine date and time for end
+          sortDate: new Date(`${date} ${startAt}`),
+          group: { id: session.groupID, name: groupeDetails },
+          prog: { id: session.groupe.progID, name: progDetails },
+          salle: salleDetails,
           // Add other event properties as needed
         });
       }
     });
     // Sort events by start date in descending order
-    events.sort((a, b) => b.start - a.start);
+    events.sort((a, b) => b.sortDate - a.sortDate);
     return res.send({
       events: events,
       message: "Sessions fetch successfully",

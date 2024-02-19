@@ -40,12 +40,12 @@ routeSession.post(
   jsonParser,
   sessionController.updateSession
 );
-routeSession.post(
+routeSession.get(
   "/getSessionsInLast4Days",
   jsonParser,
   sessionController.getSessionsInLast4Days
 );
-routeSession.post(
+routeSession.get(
   "/getAllSessionsInLastDays",
   jsonParser,
   sessionController.getAllSessionsInLastDays
