@@ -50,4 +50,5 @@ routeSession.get(
   jsonParser,
   sessionController.getAllSessionsInLastDays
 );
+routeSession.post("/getAllSessionsForTeacher", jsonParser, sessionController.getAllSessionsForTeacher);
 module.exports = routeSession;
