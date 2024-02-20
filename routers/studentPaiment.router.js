@@ -14,4 +14,9 @@ routeStudentPayment.get(
   jsonParser,
   studentPaimentController.getUnpaidBills
 );
+routeStudentPayment.post(
+  "/payStudentBillsMultiMode",
+  jsonParser,
+  studentPaimentController.payStudentBillsMultiMode
+);
 module.exports = routeStudentPayment;

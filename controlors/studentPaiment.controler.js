@@ -192,11 +192,65 @@ const getUnpaidBills = async (req, res, next) => {
 const payStudentBillsMultiMode = async (req, res, next) => {
   try {
     const { studentID, paimentRecord, total } = req.body.data; // student id
-    // Check if the necessary data (title) is provided
-
+    for (const key in paimentRecord) {
+      const records = paimentRecord[key];
+      /** create the bills */
+      const bill = await db.bill.create({
+        totalAmount: total,
+        studentID: studentID,
+      });
+      if (records.type == "Total") {
+        if (records.isChecked) {
+          /**  insert the records */
+          /**     in paymentTotalMode */
+          await db.paymentTotalMode.create({
+            amount: records.prix,
+            progID: records.id,
+            billD: bill.ID_ROWID,
+          });
+          for (const event of records.events) {
+            /** change the studentAttendanceRecording isPaid field to true */
+            const data = await db.studentAttendanceRecording.update(
+              {
+                isPaid: true,
+              },
+              {
+                where: {
+                  sessionID: event.id,
+                  studentID: studentID,
+                },
+              }
+            );
+          }
+        }
+      } else {
+        for (const event of records.events) {
+          /** change the studentAttendanceRecording isPaid field to true */
+          if (event.isChecked) {
+            const data = await db.studentAttendanceRecording.update(
+              {
+                isPaid: true,
+              },
+              {
+                where: {
+                  sessionID: event.id,
+                  studentID: studentID,
+                },
+              }
+            );
+            /**  insert the records */
+            /**     in paymentSessionMode */
+            await db.paymentSessionMode.create({
+              amount: records.prix,
+              StudentAttRecID: data.ID_ROWID,
+              billD: bill.ID_ROWID,
+            });
+          }
+        }
+      }
+    }
     return res.send({
-      message: `Student Bills is fetch successfully.`,
-      bills: data,
+      message: `Student Bills is bien affecter successfully.`,
       code: 200,
     });
   } catch (error) {
@@ -212,4 +266,5 @@ const payStudentBillsMultiMode = async (req, res, next) => {
 module.exports = {
   getStudentBills,
   getUnpaidBills,
+  payStudentBillsMultiMode,
 };
