@@ -77,6 +77,10 @@ module.exports = function (sequelize, DataTypes) {
       foreignKey: "studentID",
       allowNull: false,
     });
+    student.hasMany(models.paymentSessionMode, {
+      foreignKey: "studentID",
+      allowNull: false,
+    });
   };
   return student;
 };

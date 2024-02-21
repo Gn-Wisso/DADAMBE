@@ -20,6 +20,10 @@ module.exports = function (sequelize, DataTypes) {
     paymentSessionMode.belongsTo(models.studentAttendanceRecording, {
       foreignKey: "StudentAttRecID",
     });
+    paymentSessionMode.belongsTo(models.student, {
+      foreignKey: "studentID",
+      allowNull: false,
+    });
     paymentSessionMode.belongsTo(models.bill, {
       foreignKey: "billD",
       allowNull: false,

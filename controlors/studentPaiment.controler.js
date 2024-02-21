@@ -23,12 +23,10 @@ const getStudentBills = async (req, res, next) => {
           required: false,
           include: [
             {
-              model: db.studentAttendanceRecording,
+              model: db.student,
               required: false,
-              throw: {
-                model: db.session,
-                attributes: ["ID_ROWID", "startAt", "endAt", "date"],
-                include: {
+              include: [
+                {
                   model: db.groupe,
                   attributes: ["ID_ROWID", "GroupeName"],
                   include: {
@@ -37,10 +35,12 @@ const getStudentBills = async (req, res, next) => {
                     required: false,
                   },
                 },
-              },
+              ],
             },
+            { model: db.studentAttendanceRecording, required: false },
           ],
         },
+
         {
           model: db.paymentTotalMode,
           required: false,
@@ -52,6 +52,7 @@ const getStudentBills = async (req, res, next) => {
         },
       ],
     });
+
     data.sort((a, b) => b.createdAt - a.createdAt);
     return res.send({
       message: `Student Bills is fetch successfully.`,
@@ -251,6 +252,7 @@ const payStudentBillsMultiMode = async (req, res, next) => {
               amount: records.prix,
               StudentAttRecID: data[0]?.ID_ROWID,
               billD: bill.ID_ROWID,
+              studentID: studentID,
             });
           }
         }
