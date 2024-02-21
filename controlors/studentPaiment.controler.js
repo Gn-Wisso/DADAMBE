@@ -227,7 +227,7 @@ const payStudentBillsMultiMode = async (req, res, next) => {
         for (const event of records.events) {
           /** change the studentAttendanceRecording isPaid field to true */
           if (event.isChecked) {
-            const data = await db.studentAttendanceRecording.update(
+            await db.studentAttendanceRecording.update(
               {
                 isPaid: true,
               },
@@ -238,11 +238,18 @@ const payStudentBillsMultiMode = async (req, res, next) => {
                 },
               }
             );
+
+            const data = await db.studentAttendanceRecording.findAll({
+              where: {
+                sessionID: event.id,
+                studentID: studentID,
+              },
+            });
             /**  insert the records */
             /**     in paymentSessionMode */
             await db.paymentSessionMode.create({
               amount: records.prix,
-              StudentAttRecID: data.ID_ROWID,
+              StudentAttRecID: data[0]?.ID_ROWID,
               billD: bill.ID_ROWID,
             });
           }
