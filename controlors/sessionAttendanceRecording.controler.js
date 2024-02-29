@@ -91,40 +91,43 @@ const updateSessionAttendanceRecording = async (req, res, next) => {
       attributes: ["typeOfPaiment"],
     });
 
-    // delete all Attendance Recording For Student
-    await db.studentAttendanceRecording.destroy({
-      where: {
-        sessionID: id,
-      },
-    });
     // create new Attendance Recording For Student
     studentList.forEach(async (student) => {
-      if (prog && prog.typeOfPaiment == "total") {
-        // find if there is student already pay for this program in total mode
-        const listPaymeniInTotalMode = await db.paymentTotalMode.findAll({
-          where: {
-            progID: idProg,
-          },
-          include: {
-            model: db.bill,
+      // find if student record already exicte :
+      const rec = await db.studentAttendanceRecording.findAll({
+        where: {
+          sessionID: id,
+          studentID: student.id,
+        },
+      });
+      if (rec.lenght == 0) {
+        if (prog && prog.typeOfPaiment == "total") {
+          // find if there is student already pay for this program in total mode
+          const listPaymeniInTotalMode = await db.paymentTotalMode.findAll({
             where: {
-              studentID: student.id,
+              progID: idProg,
             },
-          },
-        });
-        await db.studentAttendanceRecording.create({
-          studentID: student.id,
-          sessionID: id,
-          isPaid:
-            listPaymeniInTotalMode && listPaymeniInTotalMode.lenght != 0
-              ? true
-              : false,
-        });
-      } else {
-        await db.studentAttendanceRecording.create({
-          studentID: student.id,
-          sessionID: id,
-        });
+            include: {
+              model: db.bill,
+              where: {
+                studentID: student.id,
+              },
+            },
+          });
+          await db.studentAttendanceRecording.create({
+            studentID: student.id,
+            sessionID: id,
+            isPaid:
+              listPaymeniInTotalMode && listPaymeniInTotalMode.lenght != 0
+                ? true
+                : false,
+          });
+        } else {
+          await db.studentAttendanceRecording.create({
+            studentID: student.id,
+            sessionID: id,
+          });
+        }
       }
     });
     /** teacher part  */
@@ -136,11 +139,20 @@ const updateSessionAttendanceRecording = async (req, res, next) => {
     });
     // create new Attendance Recording For Student
     teacherList.forEach(async (teacher) => {
-      await db.teacherAttendanceRecording.create({
-        teacherID: teacher.id,
-        sessionID: id,
-        NumberOfAttendees: studentList ? studentList.lenght : 0,
+      // find if teacher record already exicte :
+      const rec = await db.teacherAttendanceRecording.findAll({
+        where: {
+          sessionID: id,
+          teacherID: teacher.id,
+        },
       });
+      if (rec.lenght == 0) {
+        await db.teacherAttendanceRecording.create({
+          teacherID: teacher.id,
+          sessionID: id,
+          NumberOfAttendees: studentList ? studentList.lenght : 0,
+        });
+      }
     });
     // update session
     await db.session.update(
@@ -326,7 +338,8 @@ const getSessionAttendanceRecordingForTeacher = async (req, res, next) => {
           start: startAt, // Combine date and time for start
           end: endAt, // Combine date and time for end
           prog: { id: session.groupe.program.ID_ROWID, name: progDetails },
-          numberOfAttendees: session?.teacherAttendanceRecording?.NumberOfAttendees || 0,
+          numberOfAttendees:
+            session?.teacherAttendanceRecording?.NumberOfAttendees || 0,
           // Add other event properties as needed
         });
       }
