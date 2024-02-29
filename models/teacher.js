@@ -25,6 +25,23 @@ module.exports = function (sequelize, DataTypes) {
         key: "ID_ROWID",
       },
     },
+    Password: {
+      type: DataTypes.STRING(150),
+      allowNull: false,
+    },
+    isConnected: {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      defaultValue: false, // Assuming default value as 'false' if not provided
+    },
+    LastcnxDate: {
+      type: DataTypes.DATEONLY,
+      allowNull: true, // Assuming this is optional
+    },
+    cnxToken: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
   });
   teacher.associate = (models) => {
     teacher.belongsTo(models.person, {
