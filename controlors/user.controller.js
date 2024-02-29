@@ -35,9 +35,17 @@ const addUser = async (req, res, next) => {
                     where: { mail: reqData.mail }
                 }]
             });
-            if (existinguser) {
+                  // Check if the email already exists for a teacher
+                  const existingteacher= await db.teacher.findOne({
+                    include: [{
+                        model: db.person,
+                        as:'personProfile2',
+                        where: { mail: reqData.mail }
+                    }]
+                });
+            if (existinguser || existingteacher) {
                 return res.send({
-                    message: "Email already exists for another user.",
+                    message: "Email already exists.",
                     code: 400
                 });
             }
@@ -283,7 +291,7 @@ const updateGeneralUserData = async (req, res, next) => {
                 as: 'personProfile'
             }]
         });
-              // Check if the email already exists for another teacher
+              // Check if the email already exists for another user
               const existinguser = await db.user.findOne({
                 include: [{
                     model: db.person,
@@ -291,10 +299,16 @@ const updateGeneralUserData = async (req, res, next) => {
                     where: { mail: mail }
                 }]
             });
-          
-            if (existinguser && existinguser.ID_ROWID !== user.ID_ROWID) {
+              // Check if the email already exists for a teacher
+              const existingteacher= await db.teacher.findOne({
+                include: [{
+                    model: db.person,
+                    as:'personProfile2',
+                    where: { mail: mail }
+                }]})
+            if ((existinguser && existinguser.ID_ROWID !== user.ID_ROWID) || existingteacher) {
                 return res.send({
-                    message: "Email already exists for another user.",
+                    message: "Email already exists.",
                     code: 400
                 });
             }

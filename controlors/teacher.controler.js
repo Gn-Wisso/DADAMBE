@@ -24,9 +24,19 @@ const addTeacher = async (req, res, next) => {
                     where: { mail: reqData.mail }
                 }]
             });
-            if (existingTeacher) {
+
+                    // Check if the email already exists for a user
+                    const existinguser = await db.user.findOne({
+                        include: [{
+                            model: db.person,
+                            as:'personProfile',
+                            where: { mail: reqData.mail }
+                        }]
+                    });
+
+            if (existingTeacher || existinguser) {
                 return res.send({
-                    message: "Email already exists for another teacher.",
+                    message: "Email already exists ",
                     code: 400
                 });
             }
@@ -99,10 +109,18 @@ const updateTeacher = async (req, res, next) => {
                 where: { mail: data.mail }
             }]
         });
+                // Check if the email already exists for a user
+                const existinguser = await db.user.findOne({
+                    include: [{
+                        model: db.person,
+                        as:'personProfile',
+                        where: { mail: data.mail }
+                    }]
+                });
       
-        if (existingTeacher && existingTeacher.ID_ROWID !== teacherRecord.ID_ROWID) {
+        if ((existingTeacher && existingTeacher.ID_ROWID !== teacherRecord.ID_ROWID ) || existinguser) {
             return res.send({
-                message: "Email already exists for another teacher.",
+                message: "Email already exists.",
                 code: 400
             });
         }

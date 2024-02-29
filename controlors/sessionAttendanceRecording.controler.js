@@ -258,8 +258,100 @@ const getSessionAttendanceRecordingForStuent = async (req, res, next) => {
     console.log(error);
   }
 };
+const getSessionAttendanceRecordingForTeacher = async (req, res, next) => {
+  try {
+    const { id } = req.params; // Teacher ID
+    // Check if the necessary data (teacher ID) is provided
+    if (!id) {
+      return res.send({
+        message: "Error! Teacher ID is required.",
+        code: 409,
+      });
+    }
+    // Get all sessions where the teacher is recorded
+    const teacherData = await db.teacher.findByPk(id, {
+      attributes: ["ID_ROWID"],
+      include: [
+        {
+          model: db.session,
+          required: false,
+          through: {
+            model: db.teacherAttendanceRecording,
+            attributes: ["NumberOfAttendees"], // Include any other relevant attributes
+          },
+          include: [
+            {
+              model: db.groupe,
+              attributes: ["ID_ROWID", "GroupeName"],
+              include: {
+                model: db.program,
+                attributes: ["ID_ROWID", "title"],
+                required: false,
+              },
+            },
+            {
+              model: db.class,
+              attributes: ["ID_ROWID", "className"],
+              required: false,
+            },
+          ],
+        },
+      ],
+    });
+    // Prepare session attendance recording data
+    const events = [];
+    const currentDate = new Date();
+    currentDate.setHours(0, 0, 0, 0);
+    teacherData?.sessions.forEach((session) => {
+      // Extract session details
+      const { ID_ROWID: sessionId, startAt, endAt, date } = session;
+      if (new Date(`${date} ${endAt}`) < currentDate) {
+        // Extract class details if available
+        const salleDetails = session.class
+          ? session.class.className
+          : "non défini";
+        const groupeDetails = session.groupe
+          ? session.groupe.GroupeName
+          : "No Groupe";
+        const progDetails =
+          session.groupe && session.groupe.program
+            ? session.groupe.program.title
+            : "No programme";
+        // Create events based on session data
+        events.push({
+          id: sessionId, // Unique identifier for the event
+          date: date,
+          sortDate: new Date(`${date} ${startAt}`),
+          title: `Programme ${progDetails} - Groupe ${groupeDetails} - Salle ${salleDetails}`, // Event title combining group and class details
+          start: startAt, // Combine date and time for start
+          end: endAt, // Combine date and time for end
+          prog: { id: session.groupe.program.ID_ROWID, name: progDetails },
+          numberOfAttendees: session?.teacherAttendanceRecording?.NumberOfAttendees || 0,
+          // Add other event properties as needed
+        });
+      }
+    });
+    // Sort events by start date in descending order
+    events.sort((a, b) => b.sortDate - a.sortDate);
+    return res.send({
+      message: `Session Attendance Recording for Teacher is fetched successfully.`,
+      sessionAttRec: events,
+      code: 200,
+    });
+  } catch (error) {
+    res.send({
+      message:
+        "An error occurred while fetching the Session Attendance Recording for Teacher.",
+      error: error.message,
+      code: 400,
+    });
+    console.log(error);
+  }
+};
+
 module.exports = {
   getSessionAttendanceRecording,
   updateSessionAttendanceRecording,
   getSessionAttendanceRecordingForStuent,
+  getSessionAttendanceRecordingForTeacher,
 };
