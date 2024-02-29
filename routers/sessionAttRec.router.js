@@ -19,4 +19,9 @@ routeSessionAttRec.get(
   jsonParser,
   sessionAttRecController.getSessionAttendanceRecordingForStuent
 );
+routeSessionAttRec.get(
+  "/getSessionAttendanceRecordingForTeacher/:id",
+  jsonParser,
+  sessionAttRecController.getSessionAttendanceRecordingForTeacher
+);
 module.exports = routeSessionAttRec;

@@ -46,7 +46,7 @@ const getStudentBills = async (req, res, next) => {
           required: false,
           include: {
             model: db.program,
-            attributes: ["ID_ROWID", "title"],
+            attributes: ["ID_ROWID", "title", "prix"],
             required: false,
           },
         },
@@ -193,13 +193,13 @@ const getUnpaidBills = async (req, res, next) => {
 const payStudentBillsMultiMode = async (req, res, next) => {
   try {
     const { studentID, paimentRecord, total } = req.body.data; // student id
-    /** create the bills */
     const bill = await db.bill.create({
       totalAmount: total,
       studentID: studentID,
     });
     for (const key in paimentRecord) {
       const records = paimentRecord[key];
+      /** create the bills */
 
       if (records.type == "Total") {
         if (records.isChecked) {

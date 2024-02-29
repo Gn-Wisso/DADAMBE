@@ -7,7 +7,6 @@ const Fuse = require("fuse.js");
 require("dotenv").config();
 const { addPerson } = require("./person.controler");
 const { generateStudentCode, checkIfCodeExistsT } = require("./generator");
-const { generateUniqueUsername } = require("./generator");
 const sendM = require("./email.controler");
 const passwordGenerator = require("password-generator");
 function sendPassword(firstName, last_name, password, email) {
@@ -38,9 +37,20 @@ const addTeacher = async (req, res, next) => {
         },
       ],
     });
-    if (existingTeacher) {
+    // Check if the email already exists for a user
+    const existinguser = await db.user.findOne({
+      include: [
+        {
+          model: db.person,
+          as: "personProfile",
+          where: { mail: reqData.mail },
+        },
+      ],
+    });
+
+    if (existingTeacher || existinguser) {
       return res.send({
-        message: "Email already exists for another teacher.",
+        message: "Email already exists ",
         code: 400,
       });
     }
@@ -140,13 +150,24 @@ const updateTeacher = async (req, res, next) => {
         },
       ],
     });
+    // Check if the email already exists for a user
+    const existinguser = await db.user.findOne({
+      include: [
+        {
+          model: db.person,
+          as: "personProfile",
+          where: { mail: data.mail },
+        },
+      ],
+    });
 
     if (
-      existingTeacher &&
-      existingTeacher.ID_ROWID !== teacherRecord.ID_ROWID
+      (existingTeacher &&
+        existingTeacher.ID_ROWID !== teacherRecord.ID_ROWID) ||
+      existinguser
     ) {
       return res.send({
-        message: "Email already exists for another teacher.",
+        message: "Email already exists.",
         code: 400,
       });
     }
