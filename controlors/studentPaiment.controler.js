@@ -200,7 +200,12 @@ const payStudentBillsMultiMode = async (req, res, next) => {
     for (const key in paimentRecord) {
       const records = paimentRecord[key];
       /** create the bills */
-
+      // Creating a new payment record in the database
+      const newPayment = await db.payment.create({
+        montant: records.prix,
+        progID: records.id,
+        StudentID: studentID,
+      });
       if (records.type == "Total") {
         if (records.isChecked) {
           /**  insert the records */

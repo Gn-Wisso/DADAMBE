@@ -100,7 +100,8 @@ const updateSessionAttendanceRecording = async (req, res, next) => {
           studentID: student.id,
         },
       });
-      if (rec.lenght == 0) {
+
+      if (Array.isArray(rec) && rec.length === 0) {
         if (prog && prog.typeOfPaiment == "total") {
           // find if there is student already pay for this program in total mode
           const listPaymeniInTotalMode = await db.paymentTotalMode.findAll({
@@ -131,12 +132,7 @@ const updateSessionAttendanceRecording = async (req, res, next) => {
       }
     });
     /** teacher part  */
-    // delete all Attendance Recording For Student
-    await db.teacherAttendanceRecording.destroy({
-      where: {
-        sessionID: id,
-      },
-    });
+
     // create new Attendance Recording For Student
     teacherList.forEach(async (teacher) => {
       // find if teacher record already exicte :
@@ -146,7 +142,7 @@ const updateSessionAttendanceRecording = async (req, res, next) => {
           teacherID: teacher.id,
         },
       });
-      if (rec.lenght == 0) {
+      if (Array.isArray(rec) && rec.length === 0) {
         await db.teacherAttendanceRecording.create({
           teacherID: teacher.id,
           sessionID: id,
