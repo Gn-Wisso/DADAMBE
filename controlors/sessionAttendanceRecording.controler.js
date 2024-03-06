@@ -90,8 +90,32 @@ const updateSessionAttendanceRecording = async (req, res, next) => {
     const prog = await db.program.findByPk(idProg, {
       attributes: ["typeOfPaiment"],
     });
-
     // create new Attendance Recording For Student
+    // get all this session student rec
+    const rec = await db.studentAttendanceRecording.findAll({
+      where: {
+        sessionID: id,
+      },
+      attributes: ["studentID"],
+    });
+    // Get an array of studentIDs from the rec array
+    const presentStudentIDs = rec.map((record) => record.studentID);
+
+    // Extract IDs from studentList array
+    const studentIDsInList = studentList.map((student) => student.id);
+
+    // Filter out the studentIDs that are not present in the studentList
+    const studentIDsToDelete = presentStudentIDs.filter(
+      (studentID) => !studentIDsInList.includes(studentID)
+    );
+
+    // Delete records where studentID is not in the studentList
+    await db.studentAttendanceRecording.destroy({
+      where: {
+        sessionID: id,
+        studentID: studentIDsToDelete,
+      },
+    });
     studentList.forEach(async (student) => {
       // find if student record already exicte :
       const rec = await db.studentAttendanceRecording.findAll({
@@ -102,7 +126,7 @@ const updateSessionAttendanceRecording = async (req, res, next) => {
       });
 
       if (Array.isArray(rec) && rec.length === 0) {
-        if (prog && prog.typeOfPaiment == "total") {
+        if (prog && prog.typeOfPaiment == "Total") {
           // find if there is student already pay for this program in total mode
           const listPaymeniInTotalMode = await db.paymentTotalMode.findAll({
             where: {
@@ -133,6 +157,30 @@ const updateSessionAttendanceRecording = async (req, res, next) => {
     });
     /** teacher part  */
 
+    const recTeacher = await db.teacherAttendanceRecording.findAll({
+      where: {
+        sessionID: id,
+      },
+      attributes: ["teacherID"],
+    });
+    // Get an array of teacherIDs from the rec array
+    const presentTeacherIDs = recTeacher.map((record) => record.teacherID);
+
+    // Extract IDs from teacherList array
+    const teacherIDsInList = teacherList.map((teacher) => teacher.id);
+
+    // Filter out the teacherIDs that are not present in the teacherList
+    const teacherIDsToDelete = presentTeacherIDs.filter(
+      (teacherID) => !teacherIDsInList.includes(teacherID)
+    );
+
+    // Delete records where teacherID is not in the teacherList
+    await db.teacherAttendanceRecording.destroy({
+      where: {
+        sessionID: id,
+        teacherID: teacherIDsToDelete,
+      },
+    });
     // create new Attendance Recording For Student
     teacherList.forEach(async (teacher) => {
       // find if teacher record already exicte :
@@ -220,6 +268,7 @@ const getSessionAttendanceRecordingForStuent = async (req, res, next) => {
     const events = [];
     const currentDate = new Date();
     currentDate.setHours(0, 0, 0, 0);
+    currentDate.setDate(currentDate.getDate() + 1);
     studentData?.sessions.forEach((session) => {
       // Extract session details
       const { ID_ROWID: sessionId, startAt, endAt, date } = session;
@@ -310,6 +359,7 @@ const getSessionAttendanceRecordingForTeacher = async (req, res, next) => {
     const events = [];
     const currentDate = new Date();
     currentDate.setHours(0, 0, 0, 0);
+    currentDate.setDate(currentDate.getDate() + 1);
     teacherData?.sessions.forEach((session) => {
       // Extract session details
       const { ID_ROWID: sessionId, startAt, endAt, date } = session;

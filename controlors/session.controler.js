@@ -683,80 +683,89 @@ const getSessionsInLast4Days = async (req, res, next) => {
 };
 const getAllSessionsForTeacher = async (req, res, next) => {
   try {
-      const { id } = req.body;
-      if (!id) {
-          return res.send({
-              message: "Error to fetch Session",
-              code: 400,
-          });
-      }
+    const { id } = req.body;
+    if (!id) {
+      return res.send({
+        message: "Error to fetch Session",
+        code: 400,
+      });
+    }
 
-      const data = await db.teacherGroup.findAll({
-          where: {
-              TeacherID: id
-          },
+    const data = await db.teacherGroup.findAll({
+      where: {
+        TeacherID: id,
+      },
+      include: [
+        {
+          model: db.groupe,
+          as: "group",
           include: [
-              {
-                  model: db.groupe,
-                  as: 'group',
-                  include: [
-                      {
-                          model: db.program // Corrected from db.programme
-                      },
-                      {
-                          model: db.session,
-                          include: {
-                              model: db.class
-                          }
-                      }
-                  ]
+            {
+              model: db.program, // Corrected from db.programme
+            },
+            {
+              model: db.session,
+              include: {
+                model: db.class,
               },
-              {
-                  model: db.teacher,
-                  as: 'teacher'
-              }
-          ]
-      });
-console.log(data);
-      const events = [];
-      if (data && data.length > 0) {
-
-          data.forEach(teacherGroup => {
-
-              if (teacherGroup.group && teacherGroup.group.program && teacherGroup.group.sessions) {           
-console.log("------------------------------------------------------------------------");
-                  teacherGroup.group.sessions.forEach(session => {
-
-                      const { ID_ROWID: sessionId, startAt, endAt, date, class: className, ID_ROWID } = session;
-                      events.push({
-                          id: sessionId,
-                          title: `Programme ${teacherGroup.group.program.title} - Groupe ${teacherGroup.group.GroupeName} - Salle ${className}`,
-                          start: new Date(`${date} ${startAt}`),
-                          end: new Date(`${date} ${endAt}`),
-                          groupID: ID_ROWID,
-                          groupName: teacherGroup.group.GroupeName,
-                          // Add other event properties as needed
-                      });
-                  });
-              }
+            },
+          ],
+        },
+        {
+          model: db.teacher,
+          as: "teacher",
+        },
+      ],
+    });
+    console.log(data);
+    const events = [];
+    if (data && data.length > 0) {
+      data.forEach((teacherGroup) => {
+        if (
+          teacherGroup.group &&
+          teacherGroup.group.program &&
+          teacherGroup.group.sessions
+        ) {
+          console.log(
+            "------------------------------------------------------------------------"
+          );
+          teacherGroup.group.sessions.forEach((session) => {
+            const {
+              ID_ROWID: sessionId,
+              startAt,
+              endAt,
+              date,
+              class: className,
+              ID_ROWID,
+            } = session;
+            events.push({
+              id: sessionId,
+              title: `Programme ${teacherGroup.group.program.title} - Groupe ${teacherGroup.group.GroupeName} - Salle ${className}`,
+              start: new Date(`${date} ${startAt}`),
+              end: new Date(`${date} ${endAt}`),
+              groupID: ID_ROWID,
+              groupName: teacherGroup.group.GroupeName,
+              // Add other event properties as needed
+            });
           });
-      } else {
-          console.log("No data found or data is empty.");
-      }
-
-
-      return res.send({
-          events: events,
-          message: "Sessions fetch successfully",
-          code: 200,
+        }
       });
+    } else {
+      console.log("No data found or data is empty.");
+    }
+
+    return res.send({
+      events: events,
+      message: "Sessions fetch successfully",
+      code: 200,
+    });
   } catch (error) {
-      console.log(error);
-      return res.send({
-          message: "Error to fetch sessions",
-          code: 500,
-          error: error.message,
-      });
+    console.log(error);
+    return res.send({
+      message: "Error to fetch sessions",
+      code: 500,
+      error: error.message,
+    });
   }
 };
 /** get session history in the last 4 days  */
@@ -785,6 +794,8 @@ const getAllSessionsInLastDays = async (req, res, next) => {
     const events = [];
     const currentDate = new Date();
     currentDate.setHours(0, 0, 0, 0);
+    currentDate.setDate(currentDate.getDate() + 1);
+
     data.forEach((session) => {
       // Extract session details
       const { ID_ROWID: sessionId, startAt, endAt, date } = session;
