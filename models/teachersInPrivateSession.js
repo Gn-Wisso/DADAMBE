@@ -1,8 +1,8 @@
 const Sequelize = require("sequelize");
 
 module.exports = function (sequelize, DataTypes) {
-  const teacherAttendanceRecording = sequelize.define(
-    "teacherAttendanceRecording",
+  const teachersInPrivateSession = sequelize.define(
+    "teachersInPrivateSession",
     {
       // Assuming an auto-incremented primary key for the registrations table like wisso did
       ID_ROWID: {
@@ -11,17 +11,12 @@ module.exports = function (sequelize, DataTypes) {
         allowNull: false,
         primaryKey: true,
       },
-      NumberOfAttendees: {
-        type: DataTypes.BIGINT,
-        allowNull: true,
-      },
-      isPaid: {
+      isAttended: {
         type: DataTypes.BOOLEAN,
         allowNull: false,
         defaultValue: false, // Assuming default value as 'false' if not provided
       },
-      isValidate: {
-        // validate by user or secretaire
+      isPaid: {
         type: DataTypes.BOOLEAN,
         allowNull: false,
         defaultValue: false, // Assuming default value as 'false' if not provided
@@ -36,5 +31,6 @@ module.exports = function (sequelize, DataTypes) {
       },
     }
   );
-  return teacherAttendanceRecording;
+  teachersInPrivateSession.associate = (models) => {};
+  return teachersInPrivateSession;
 };

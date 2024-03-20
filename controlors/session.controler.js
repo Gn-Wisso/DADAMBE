@@ -167,9 +167,15 @@ async function getAvailableClass(date, timeStart, timeFinish, classes) {
       date: date,
     },
   });
-
+  // Retrieve private sessions within the specified date
+  const privateSessions = await db.privateSession.findAll({
+    where: {
+      date: date,
+    },
+  });
   // Map reserved classes based on time range
   const reservedClasses = sessions
+    .concat(privateSessions)
     .filter((session) => {
       const sTStart = new Date(`1970-01-01T${session.startAt}`);
       const eTStart = new Date(`1970-01-01T${session.endAt}`);
@@ -342,7 +348,40 @@ const getAllSessionsForSalle = async (req, res, next) => {
         },
       },
     });
-    console.log(idSalle);
+    // Retrieve all private sessions for the given class ID
+    const privateSessions = await db.privateSession.findAll({
+      where: {
+        classID: idSalle,
+      },
+      include: [
+        {
+          model: db.student,
+          as: "students",
+          include: [
+            {
+              model: db.person,
+              as: "personProfile2",
+              attributes: ["firstName", "lastName"],
+            },
+          ],
+          attributes: ["ID_ROWID"],
+          through: { attributes: [] }, // Exclude association attributes
+        },
+        {
+          model: db.teacher,
+          as: "teachers",
+          include: [
+            {
+              model: db.person,
+              as: "personProfile2",
+              attributes: ["firstName", "lastName"],
+            },
+          ],
+          attributes: ["ID_ROWID"],
+          through: { attributes: [] }, // Exclude association attributes
+        },
+      ],
+    });
     const events = [];
     data.forEach((session) => {
       // Extract session details
@@ -364,6 +403,35 @@ const getAllSessionsForSalle = async (req, res, next) => {
         start: new Date(`${date} ${startAt}`), // Combine date and time for start
         end: new Date(`${date} ${endAt}`), // Combine date and time for end
         groupID: session.groupID,
+        type: "normal",
+        // Add other event properties as needed
+      });
+    });
+    privateSessions.forEach((session) => {
+      // Extract session details
+      const { ID_ROWID: sessionId, startAt, endAt, date, lib } = session;
+      // Extract student data
+      const students = session.students.map((student) => ({
+        id: student.ID_ROWID,
+        name: `${student.personProfile2.firstName} ${student.personProfile2.lastName}`,
+        // Add other student properties as needed
+      }));
+
+      // Extract teacher data
+      const teachers = session.teachers.map((teacher) => ({
+        id: teacher.ID_ROWID,
+        name: `${teacher.personProfile2.firstName} ${teacher.personProfile2.lastName}`,
+        // Add other teacher properties as needed
+      }));
+      // Create events based on session data
+      events.push({
+        id: sessionId, // Unique identifier for the event
+        title: `Private Session - ${lib}`,
+        start: new Date(`${date} ${startAt}`),
+        end: new Date(`${date} ${endAt}`),
+        type: "private",
+        students: students,
+        teachers: teachers,
         // Add other event properties as needed
       });
     });
@@ -404,7 +472,42 @@ const getAllSessions = async (req, res, next) => {
         },
       ],
     });
-
+    // Retrieve all private sessions for the given class ID
+    const privateSessions = await db.privateSession.findAll({
+      include: [
+        {
+          model: db.student,
+          as: "students",
+          include: [
+            {
+              model: db.person,
+              as: "personProfile2",
+              attributes: ["firstName", "lastName"],
+            },
+          ],
+          attributes: ["ID_ROWID"],
+          through: { attributes: [] }, // Exclude association attributes
+        },
+        {
+          model: db.teacher,
+          as: "teachers",
+          include: [
+            {
+              model: db.person,
+              as: "personProfile2",
+              attributes: ["firstName", "lastName"],
+            },
+          ],
+          attributes: ["ID_ROWID"],
+          through: { attributes: [] }, // Exclude association attributes
+        },
+        {
+          model: db.class,
+          attributes: ["ID_ROWID", "className"],
+          required: false,
+        },
+      ],
+    });
     const events = [];
     data.forEach((session) => {
       // Extract session details
@@ -428,6 +531,38 @@ const getAllSessions = async (req, res, next) => {
         start: new Date(`${date} ${startAt}`), // Combine date and time for start
         end: new Date(`${date} ${endAt}`), // Combine date and time for end
         groupID: session.groupID,
+        // Add other event properties as needed
+      });
+    });
+    privateSessions.forEach((session) => {
+      // Extract session details
+      const { ID_ROWID: sessionId, startAt, endAt, date, lib } = session;
+      // Extract student data
+      const students = session.students.map((student) => ({
+        id: student.ID_ROWID,
+        name: `${student.personProfile2.firstName} ${student.personProfile2.lastName}`,
+        // Add other student properties as needed
+      }));
+
+      // Extract teacher data
+      const teachers = session.teachers.map((teacher) => ({
+        id: teacher.ID_ROWID,
+        name: `${teacher.personProfile2.firstName} ${teacher.personProfile2.lastName}`,
+        // Add other teacher properties as needed
+      }));
+      // salle data
+      const salleDetails = session.class
+        ? session.class.className
+        : "non défini";
+      // Create events based on session data
+      events.push({
+        id: sessionId, // Unique identifier for the event
+        title: `Séance Privé - ${lib} - Salle ${salleDetails}`,
+        start: new Date(`${date} ${startAt}`),
+        end: new Date(`${date} ${endAt}`),
+        type: "private",
+        students: students,
+        teachers: teachers,
         // Add other event properties as needed
       });
     });
@@ -457,27 +592,55 @@ const getAllSessionsForStudent = async (req, res, next) => {
       });
     }
     const data = await db.student.findByPk(id, {
-      include: {
-        model: db.groupe,
-        attributes: ["ID_ROWID", "GroupeName"],
-        required: false,
-        include: [
-          {
-            model: db.program,
-            attributes: ["ID_ROWID", "title"],
-            required: false,
-          },
-          {
-            model: db.session,
-            required: false,
-            include: {
+      include: [
+        {
+          model: db.groupe,
+          attributes: ["ID_ROWID", "GroupeName"],
+          required: false,
+          include: [
+            {
+              model: db.program,
+              attributes: ["ID_ROWID", "title"],
+              required: false,
+            },
+            {
+              model: db.session,
+              required: false,
+              include: {
+                model: db.class,
+                attributes: ["ID_ROWID", "className"],
+                required: false,
+              },
+            },
+          ],
+        },
+        // Include private sessions associated with the student
+        {
+          model: db.privateSession,
+          attributes: ["ID_ROWID", "startAt", "endAt", "date", "lib"],
+          required: false,
+          include: [
+            {
+              model: db.teacher,
+              as: "teachers",
+              include: [
+                {
+                  model: db.person,
+                  as: "personProfile2",
+                  attributes: ["firstName", "lastName"],
+                },
+              ],
+              attributes: ["ID_ROWID"],
+              through: { attributes: [] }, // Exclude association attributes
+            },
+            {
               model: db.class,
               attributes: ["ID_ROWID", "className"],
               required: false,
             },
-          },
-        ],
-      },
+          ],
+        },
+      ],
     });
     const events = [];
     if (data && data.groupes) {
@@ -506,6 +669,38 @@ const getAllSessionsForStudent = async (req, res, next) => {
         }
       });
     }
+    // Include private sessions in events
+    if (data && data.privateSessions) {
+      data.privateSessions.forEach((session) => {
+        // Extract session details
+        const {
+          ID_ROWID: sessionId,
+          startAt,
+          endAt,
+          date,
+          lib,
+          class: classDetails,
+        } = session;
+
+        // Extract teacher data
+        const teachers = session.teachers.map((teacher) => ({
+          id: teacher.ID_ROWID,
+          name: `${teacher.personProfile2.firstName} ${teacher.personProfile2.lastName}`,
+          // Add other teacher properties as needed
+        }));
+        // Create events based on private session data
+        events.push({
+          id: sessionId, // Unique identifier for the event
+          title: `Séance Privé - ${lib} - Salle ${
+            classDetails ? classDetails.className : "non défini"
+          }`, // Event title including description and class details
+          start: new Date(`${date} ${startAt}`), // Combine date and time for start
+          end: new Date(`${date} ${endAt}`), // Combine date and time for end
+          teachers: teachers,
+          // Add other event properties as needed
+        });
+      });
+    }
 
     return res.send({
       events: events,
@@ -521,6 +716,7 @@ const getAllSessionsForStudent = async (req, res, next) => {
     });
   }
 };
+
 async function getAvailableClassForUpdate(
   date,
   timeStart,
@@ -539,8 +735,17 @@ async function getAvailableClassForUpdate(
     },
   });
 
-  // Map reserved classes based on time range
+  // Retrieve private sessions within the specified date
+  const privateSessions = await db.privateSession.findAll({
+    where: {
+      date: date,
+      ID_ROWID: { [Op.ne]: eventID },
+    },
+  });
+
+  // Map reserved classes based on time range from sessions and private sessions
   const reservedClasses = sessions
+    .concat(privateSessions)
     .filter((session) => {
       const sTStart = new Date(`1970-01-01T${session.startAt}`);
       const eTStart = new Date(`1970-01-01T${session.endAt}`);
@@ -552,6 +757,7 @@ async function getAvailableClassForUpdate(
   const inReservedClasses = classes
     .filter((classe) => !reservedClasses.includes(classe.ID_ROWID))
     .map((classe) => ({ id: classe.ID_ROWID, name: classe.className }));
+
   return inReservedClasses;
 }
 
@@ -581,6 +787,7 @@ const updateSession = async (req, res, next) => {
 
     await db.session.update(
       {
+        dayCode: new Date(`${date} ${startAt}`).getDay(),
         date: date,
         startAt: startAt,
         endAt: endAt,
@@ -633,7 +840,6 @@ const getSessionsInLast4Days = async (req, res, next) => {
         },
       ],
     });
-
     const events = [];
     data.forEach((session) => {
       // Extract session details
@@ -663,6 +869,86 @@ const getSessionsInLast4Days = async (req, res, next) => {
         prog: { id: session.groupe.progID, name: progDetails },
         // Add other event properties as needed
       });
+    });
+    const privateSessions = await db.privateSession.findAll({
+      where: {
+        date: {
+          [Op.in]: lastFourDays,
+        },
+      },
+      include: [
+        {
+          model: db.class,
+          attributes: ["ID_ROWID", "className"],
+          required: false,
+        },
+        {
+          model: db.student,
+          as: "students",
+          include: [
+            {
+              model: db.person,
+              as: "personProfile2",
+              attributes: ["firstName", "lastName"],
+            },
+          ],
+          attributes: ["ID_ROWID"],
+          through: { attributes: [] }, // Exclude association attributes
+        },
+        {
+          model: db.teacher,
+          as: "teachers",
+          include: [
+            {
+              model: db.person,
+              as: "personProfile2",
+              attributes: ["firstName", "lastName"],
+            },
+          ],
+          attributes: ["ID_ROWID"],
+          through: { attributes: [] }, // Exclude association attributes
+        },
+      ],
+    });
+    privateSessions.forEach((session) => {
+      // Extract session details
+      const {
+        ID_ROWID: sessionId,
+        startAt,
+        endAt,
+        date,
+        lib,
+        class: classDetails,
+      } = session;
+      if (new Date(`${date} ${endAt}`) < currentDate) {
+        // Create events based on private session data
+        // Extract student data
+        const students = session.students.map((student) => ({
+          id: student.ID_ROWID,
+          name: `${student.personProfile2.firstName} ${student.personProfile2.lastName}`,
+          // Add other student properties as needed
+        }));
+
+        // Extract teacher data
+        const teachers = session.teachers.map((teacher) => ({
+          id: teacher.ID_ROWID,
+          name: `${teacher.personProfile2.firstName} ${teacher.personProfile2.lastName}`,
+          // Add other teacher properties as needed
+        }));
+        events.push({
+          id: sessionId, // Unique identifier for the event
+          title: `Private Session - ${lib} - Salle ${
+            classDetails ? classDetails.className : "non défini"
+          }`, // Event title including description and class details
+          start: startAt, // Combine date and time for start
+          end: endAt, // Combine date and time for end
+          teachers,
+          students,
+          type: "private",
+          sortDate: new Date(`${date} ${startAt}`),
+          // Add other event properties as needed
+        });
+      }
     });
     // Sort events by start date in descending order
     events.sort((a, b) => b.sortDate - a.sortDate);
@@ -717,7 +1003,33 @@ const getAllSessionsForTeacher = async (req, res, next) => {
         },
       ],
     });
-    console.log(data);
+    const privateSessions = await db.privateSession.findAll({
+      include: [
+        // Include private sessions associated with the student
+        {
+          model: db.student,
+          as: "students",
+          include: [
+            {
+              model: db.person,
+              as: "personProfile2",
+              attributes: ["firstName", "lastName"],
+            },
+          ],
+          attributes: ["ID_ROWID"],
+          through: { attributes: [] }, // Exclude association attributes
+        },
+        {
+          model: db.teacher,
+          where: { ID_ROWID: id }, // Filter by teacher ID
+        },
+        {
+          model: db.class,
+          attributes: ["ID_ROWID", "className"],
+          required: false,
+        },
+      ],
+    });
     const events = [];
     if (data && data.length > 0) {
       data.forEach((teacherGroup) => {
@@ -726,9 +1038,6 @@ const getAllSessionsForTeacher = async (req, res, next) => {
           teacherGroup.group.program &&
           teacherGroup.group.sessions
         ) {
-          console.log(
-            "------------------------------------------------------------------------"
-          );
           teacherGroup.group.sessions.forEach((session) => {
             const {
               ID_ROWID: sessionId,
@@ -745,14 +1054,47 @@ const getAllSessionsForTeacher = async (req, res, next) => {
               end: new Date(`${date} ${endAt}`),
               groupID: ID_ROWID,
               groupName: teacherGroup.group.GroupeName,
+              type: "normal",
               // Add other event properties as needed
             });
           });
         }
       });
-    } else {
-      console.log("No data found or data is empty.");
     }
+    privateSessions.forEach((session) => {
+      // Extract session details
+      const {
+        ID_ROWID: sessionId,
+        startAt,
+        endAt,
+        date,
+        lib,
+        class: classDetails,
+      } = session;
+      if (new Date(`${date} ${endAt}`) < currentDate) {
+        // Create events based on private session data
+        // Extract student data
+        const students = session.students.map((student) => ({
+          id: student.ID_ROWID,
+          name: `${student.personProfile2.firstName} ${student.personProfile2.lastName}`,
+          // Add other student properties as needed
+        }));
+
+        events.push({
+          id: sessionId, // Unique identifier for the event
+          title: `Private Session - ${lib} - Salle ${
+            classDetails ? classDetails.className : "non défini"
+          }`, // Event title including description and class details
+          start: startAt, // Combine date and time for start
+          end: endAt, // Combine date and time for end
+          teachers,
+          students,
+          type: "private",
+          sortDate: new Date(`${date} ${startAt}`),
+          // Add other event properties as needed
+        });
+      }
+    });
 
     return res.send({
       events: events,
@@ -790,12 +1132,45 @@ const getAllSessionsInLastDays = async (req, res, next) => {
         },
       ],
     });
-
+    const privateSessions = await db.privateSession.findAll({
+      include: [
+        {
+          model: db.class,
+          attributes: ["ID_ROWID", "className"],
+          required: false,
+        },
+        {
+          model: db.student,
+          as: "students",
+          include: [
+            {
+              model: db.person,
+              as: "personProfile2",
+              attributes: ["firstName", "lastName"],
+            },
+          ],
+          attributes: ["ID_ROWID"],
+          through: { attributes: [] }, // Exclude association attributes
+        },
+        {
+          model: db.teacher,
+          as: "teachers",
+          include: [
+            {
+              model: db.person,
+              as: "personProfile2",
+              attributes: ["firstName", "lastName"],
+            },
+          ],
+          attributes: ["ID_ROWID"],
+          through: { attributes: [] }, // Exclude association attributes
+        },
+      ],
+    });
     const events = [];
     const currentDate = new Date();
     currentDate.setHours(0, 0, 0, 0);
     currentDate.setDate(currentDate.getDate() + 1);
-
     data.forEach((session) => {
       // Extract session details
       const { ID_ROWID: sessionId, startAt, endAt, date } = session;
@@ -823,10 +1198,52 @@ const getAllSessionsInLastDays = async (req, res, next) => {
           group: { id: session.groupID, name: groupeDetails },
           prog: { id: session.groupe.progID, name: progDetails },
           salle: salleDetails,
+          type: "normal",
           // Add other event properties as needed
         });
       }
     });
+    privateSessions.forEach((session) => {
+      // Extract session details
+      const {
+        ID_ROWID: sessionId,
+        startAt,
+        endAt,
+        date,
+        lib,
+        class: classDetails,
+      } = session;
+      if (new Date(`${date} ${endAt}`) < currentDate) {
+        // Create events based on private session data
+        // Extract student data
+        const students = session.students.map((student) => ({
+          id: student.ID_ROWID,
+          name: `${student.personProfile2.firstName} ${student.personProfile2.lastName}`,
+          // Add other student properties as needed
+        }));
+
+        // Extract teacher data
+        const teachers = session.teachers.map((teacher) => ({
+          id: teacher.ID_ROWID,
+          name: `${teacher.personProfile2.firstName} ${teacher.personProfile2.lastName}`,
+          // Add other teacher properties as needed
+        }));
+        events.push({
+          id: sessionId, // Unique identifier for the event
+          title: `Private Session - ${lib} - Salle ${
+            classDetails ? classDetails.className : "non défini"
+          }`, // Event title including description and class details
+          start: startAt, // Combine date and time for start
+          end: endAt, // Combine date and time for end
+          teachers,
+          students,
+          type: "private",
+          sortDate: new Date(`${date} ${startAt}`),
+          // Add other event properties as needed
+        });
+      }
+    });
+
     // Sort events by start date in descending order
     events.sort((a, b) => b.sortDate - a.sortDate);
     return res.send({
