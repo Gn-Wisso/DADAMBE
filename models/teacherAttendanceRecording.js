@@ -36,5 +36,11 @@ module.exports = function (sequelize, DataTypes) {
       },
     }
   );
+  teacherAttendanceRecording.associate = (models) => {
+    teacherAttendanceRecording.belongsTo(models.salaire, {
+      foreignKey: "salaireID",
+      allowNull: false,
+    });
+  };
   return teacherAttendanceRecording;
 };

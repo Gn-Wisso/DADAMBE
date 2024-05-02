@@ -32,6 +32,11 @@ module.exports = function (sequelize, DataTypes) {
       type: DataTypes.STRING,
       allowNull: false,
     },
+    prix: {
+      type: DataTypes.FLOAT,
+      allowNull: false,
+      comment: "default Price",
+    },
   });
   privateSession.associate = (models) => {
     privateSession.belongsTo(models.class, {

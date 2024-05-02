@@ -3,93 +3,140 @@ const seq = require("sequelize");
 const Op = seq.Op;
 require("dotenv").config();
 
-const getStudentBills = async (req, res, next) => {
+const getTeacherSalaires = async (req, res, next) => {
   try {
-    const { id } = req.params; // student id
-    // Check if the necessary data (title) is provided
+    const { id } = req.params; // teacher id
     if (!id) {
-      return res.send({
+      return res.status(409).json({
         message: "Error! id is required.",
         code: 409,
       });
     }
-    const data = await db.bill.findAll({
+    const data = await db.salaire.findAll({
       where: {
-        studentID: id,
+        teacherID: id,
       },
-      include: [
-        {
-          model: db.paymentSessionMode,
-          required: false,
+      order: [["ID_ROWID", "DESC"]],
+    });
+
+    const salaireData = await Promise.all(
+      data.map(async (salaire) => {
+        const extraData = await db.teacher.findByPk(id, {
           include: [
             {
-              model: db.student,
-              required: false,
+              model: db.groupe,
+              attributes: ["ID_ROWID", "GroupeName"],
               include: [
                 {
-                  model: db.groupe,
-                  attributes: ["ID_ROWID", "GroupeName"],
+                  model: db.program,
+                  attributes: ["ID_ROWID", "title"],
+                  required: false,
+                },
+                {
+                  model: db.session,
+                  attributes: ["ID_ROWID"],
+
                   include: {
-                    model: db.program,
-                    attributes: ["ID_ROWID", "title"],
-                    required: false,
+                    model: db.teacher,
+                    where: { ID_ROWID: id },
+                    attributes: ["ID_ROWID"],
+                    through: {
+                      model: db.teacherAttendanceRecording,
+                      where: {
+                        isPaid: true,
+                        salaireID: salaire.ID_ROWID,
+                        teacherID: salaire.teacherID,
+                      },
+                    },
                   },
                 },
               ],
+              required: false,
             },
-            { model: db.studentAttendanceRecording, required: false },
-          ],
-        },
-        {
-          model: db.paymentTotalMode,
-          required: false,
-          include: {
-            model: db.program,
-            attributes: ["ID_ROWID", "title", "prix"],
-            required: false,
-          },
-        },
-        {
-          model: db.student,
-          attributes: ["ID_ROWID"],
-          include: [
             {
               model: db.privateSession,
               required: false,
-              through: {
-                model: db.studentsInPrivateSession,
-                attributes: ["isAttended", "isPaid", "amount", "billD"], // Include the isPaid attribute
-                where: {
-                  isAttended: true,
-                  isPaid: false,
+              attributes: ["ID_ROWID"],
+              include: {
+                model: db.teacher,
+                attributes: ["ID_ROWID"],
+                where: { ID_ROWID: id },
+                through: {
+                  model: db.teachersInPrivateSession,
+                  where: {
+                    isAttended: true,
+                    isPaid: true,
+                    salaireID: salaire.ID_ROWID,
+                    teacherID: id,
+                  },
                 },
               },
             },
           ],
-        },
-      ],
-    });
+        });
 
-    data.sort((a, b) => b.createdAt - a.createdAt);
-    return res.send({
-      message: `Student Bills is fetch successfully.`,
-      bills: data,
+        const normalSessions = extraData?.groupes
+          .map((groupe) => {
+            if (groupe.sessions.length !== 0) {
+              return {
+                title: `Programme ${groupe.program.title}`,
+                nmbSessions: groupe.sessions.length,
+                sessions: groupe.sessions.map((session) => ({
+                  amountByStudent:
+                    session.teacherAttendanceRecording.amountByStudent,
+                  NumberOfAttendees:
+                    session.teacherAttendanceRecording.NumberOfAttendees,
+                  totalAmount: session.teacherAttendanceRecording.totalAmount,
+                })),
+              };
+            }
+          })
+          .filter(Boolean);
+        const privateSessions = extraData?.privateSessions
+          .map((session) => {
+            return {
+              title: `Private Session`,
+              nmbSessions: 1,
+              sessions: [
+                {
+                  amountByStudent:
+                    session.teachersInPrivateSession.amountByStudent,
+                  NumberOfAttendees:
+                    session.teachersInPrivateSession.NumberOfAttendees,
+                  totalAmount: session.teachersInPrivateSession.totalAmount,
+                },
+              ],
+            };
+          })
+          .filter(Boolean);
+        return {
+          id: salaire.ID_ROWID,
+          totalAmount: salaire.totalAmount,
+          date: salaire.createdAt,
+          sessions: normalSessions + privateSessions,
+        };
+      })
+    );
+
+    return res.status(200).json({
+      message: `Teacher Bills fetched successfully.`,
+      bills: salaireData,
       code: 200,
     });
   } catch (error) {
-    res.send({
-      message: "An error occurred while fetching the Student Bills.",
+    console.error(error);
+    res.status(400).json({
+      message: "An error occurred while fetching the Teacher Bills.",
       error: error.message,
       code: 400,
     });
-    console.log(error);
   }
 };
 
 // get unpaid bills
-const getUnpaidBills = async (req, res, next) => {
+const getUnpaidSalaire = async (req, res, next) => {
   try {
-    const { id } = req.params; // student id
+    const { id } = req.params; // teacher id
     // Check if the necessary data (title) is provided
     if (!id) {
       return res.send({
@@ -98,59 +145,67 @@ const getUnpaidBills = async (req, res, next) => {
       });
     }
 
-    const studentData = await db.student.findByPk(id, {
+    const teacherData = await db.teacher.findByPk(id, {
       attributes: ["ID_ROWID"],
       include: [
         {
           model: db.session,
-          required: false,
-          through: {
-            model: db.studentAttendanceRecording,
-            attributes: ["isPaid"], // Include the isPaid attribute
-            where: {
-              isPaid: false,
+          through: [
+            {
+              model: db.teacherAttendanceRecording,
+              where: {
+                isPaid: false,
+                teacherID: id,
+              },
             },
-          },
+          ],
+          required: false,
           include: [
+            {
+              model: db.student,
+              attributes: ["ID_ROWID"],
+              through: {
+                model: db.studentAttendanceRecording,
+              },
+            },
+
             {
               model: db.groupe,
               attributes: ["ID_ROWID", "GroupeName"],
               include: {
                 model: db.program,
-                attributes: ["ID_ROWID", "title", "typeOfPaiment", "prix"],
                 required: false,
               },
-            },
-            {
-              model: db.class,
-              attributes: ["ID_ROWID", "className"],
-              required: false,
             },
           ],
         },
         {
           model: db.privateSession,
           required: false,
-          through: {
-            model: db.studentsInPrivateSession,
-            attributes: ["isAttended", "isPaid"], // Include the isPaid attribute
-            where: {
-              isAttended: true,
-              isPaid: false,
+          through: [
+            {
+              model: db.teachersInPrivateSession,
+              where: {
+                isAttended: true,
+                isPaid: false,
+                teacherID: id,
+              },
             },
-          },
-          include: {
-            model: db.class,
-            attributes: ["ID_ROWID", "className"],
-            required: false,
-          },
+            {
+              model: db.studentsInPrivateSession,
+              where: {
+                isAttended: true,
+              },
+              attributes: ["ID_ROWID"], // Include the isPaid attribute
+            },
+          ],
         },
       ],
     });
     const events = [];
     const currentDate = new Date();
     currentDate.setHours(0, 0, 0, 0);
-    studentData?.sessions.forEach((session) => {
+    teacherData?.sessions.forEach((session) => {
       // Extract session details
       const { ID_ROWID: sessionId, startAt, endAt, date } = session;
       if (new Date(`${date} ${endAt}`) < currentDate) {
@@ -162,38 +217,35 @@ const getUnpaidBills = async (req, res, next) => {
         // Create events based on session data
         events.push({
           id: `normal_${sessionId}`, // Unique identifier for the event
+          title: progDetails,
+          programID: session.groupe.program.ID_ROWID,
           date: date,
           sortDate: new Date(`${date} ${startAt}`),
-          start: startAt, // Combine date and time for start
-          end: endAt, // Combine date and time for end
-          prog: {
-            id: session.groupe.program.ID_ROWID,
-            name: progDetails,
-            type: session.groupe.program.typeOfPaiment,
-            prix: session.groupe.program.prix,
-          },
-          isPaid: session?.studentAttendanceRecording?.isPaid,
+          start: startAt,
+          end: endAt,
+          isPaid: false,
           isChecked: true,
+          NumberOfAttendees: session?.students?.length,
           type: "normal",
           // Add other event properties as needed
         });
       }
     });
 
-    studentData?.privateSessions.forEach((session) => {
+    teacherData?.privateSessions.forEach((session) => {
       // Extract session details
-      const { ID_ROWID: sessionId, startAt, endAt, date, prix } = session;
+      const { ID_ROWID: sessionId, startAt, endAt, date } = session;
       if (new Date(`${date} ${endAt}`) < currentDate) {
         // Create events based on session data
         events.push({
           id: `private_${sessionId}`, // Unique identifier for the event
           date: date,
           sortDate: new Date(`${date} ${startAt}`),
-          start: startAt, // Combine date and time for start
-          end: endAt, // Combine date and time for end
-          prix: session.prix,
-          isPaid: session?.studentsInPrivateSession?.isPaid,
+          start: startAt,
+          end: endAt,
+          isPaid: false,
           isChecked: true,
+          NumberOfAttendees: session.studentsInPrivateSession.length,
           type: "private",
           // Add other event properties as needed
         });
@@ -203,47 +255,48 @@ const getUnpaidBills = async (req, res, next) => {
 
     const groupedEvents = events.reduce((acc, event) => {
       if (event.type === "normal") {
-        const { id, name, prix, type } = event.prog;
+        const { programID, title, type } = event;
+        if (!acc[programID]) {
+          acc[programID] = {
+            id: programID, // id program
+            title, // Include program title
+            prix: 0,
+            type,
+            isChecked: true,
+            amountByStudent: 0,
+            totalAmount: 0,
+            quantite: 0,
+            events: [],
+          };
+        }
+        acc[programID].events.push(event);
+        acc[programID].quantite =
+          acc[programID].quantite + event.NumberOfAttendees;
+      } else {
+        // Handle events of type "private"
+        const { id, type } = event;
         if (!acc[id]) {
           acc[id] = {
-            id, // id program
-            title: name, // Include program title
-            prix,
+            id, // id event
+            title: "Séance Privé", // Title for private sessions
+            prix: 0,
             type,
-            eventT: event.type,
             isChecked: true,
-            montant: type != "Total" ? 0 : prix,
+            amountByStudent: 0,
+            totalAmount: 0,
             quantite: 0,
             events: [],
           };
         }
         acc[id].events.push(event);
-        if (type != "Total") {
-          acc[id].montant = acc[id].events?.length * prix;
-          acc[id].quantite = acc[id].events?.length;
-        }
-      } else {
-        // Handle events of type "private"
-        const { id, prix } = event;
-        if (!acc[id]) {
-          acc[id] = {
-            id, // id event
-            title: "Privé", // Title for private sessions
-            prix,
-            eventT: "private",
-            isChecked: true,
-            montant: prix,
-            quantite: 1,
-            events: [],
-          };
-        }
-        acc[id].events.push(event);
+        acc[id].quantite = acc[id].quantite + event.NumberOfAttendees;
       }
       return acc;
     }, {});
     return res.send({
       message: `Student Bills is fetch successfully.`,
-      unpaidBills: groupedEvents,
+      unpaidSalaire: groupedEvents,
+      teacherData,
       code: 200,
     });
   } catch (error) {
@@ -257,9 +310,9 @@ const getUnpaidBills = async (req, res, next) => {
 };
 
 // student paying bills in multy mode means in session paiment mode or total mode
-const payStudentBillsMultiMode = async (req, res, next) => {
+const payTeacherSalaire = async (req, res, next) => {
   try {
-    const { studentID, paimentRecord, total } = req.body.data; // student id
+    const { teacherID, paimentRecord, total } = req.body.data; // student id
     const bill = await db.bill.create({
       totalAmount: total,
       studentID: studentID,
@@ -371,7 +424,7 @@ const payStudentBillsMultiMode = async (req, res, next) => {
 };
 
 module.exports = {
-  getStudentBills,
-  getUnpaidBills,
-  payStudentBillsMultiMode,
+  getTeacherSalaires,
+  getUnpaidSalaire,
+  payTeacherSalaire,
 };

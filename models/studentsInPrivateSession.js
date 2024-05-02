@@ -27,6 +27,10 @@ module.exports = function (sequelize, DataTypes) {
       },
     }
   );
-  studentsInPrivateSession.associate = (models) => {};
+  studentsInPrivateSession.associate = (models) => {
+    studentsInPrivateSession.belongsTo(models.bill, {
+      foreignKey: "billD",
+    });
+  };
   return studentsInPrivateSession;
 };

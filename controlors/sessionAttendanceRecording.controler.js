@@ -263,6 +263,22 @@ const getSessionAttendanceRecordingForStuent = async (req, res, next) => {
             },
           ],
         },
+        {
+          model: db.privateSession,
+          required: false,
+          through: {
+            model: db.studentsInPrivateSession,
+            attributes: ["isAttended", "isPaid"], // Include the isPaid attribute
+            where: {
+              isAttended: true,
+            },
+          },
+          include: {
+            model: db.class,
+            attributes: ["ID_ROWID", "className"],
+            required: false,
+          },
+        },
       ],
     });
     const events = [];
@@ -294,6 +310,30 @@ const getSessionAttendanceRecordingForStuent = async (req, res, next) => {
           end: endAt, // Combine date and time for end
           prog: { id: session.groupe.program.ID_ROWID, name: progDetails },
           isPaid: session?.studentAttendanceRecording?.isPaid,
+          type: "normal",
+          // Add other event properties as needed
+        });
+      }
+    });
+    studentData?.privateSessions.forEach((session) => {
+      // Extract session details
+      const { ID_ROWID: sessionId, startAt, endAt, date } = session;
+      if (new Date(`${date} ${endAt}`) < currentDate) {
+        // Extract class details if available
+        const salleDetails = session.class
+          ? session.class.className
+          : "non défini";
+
+        // Create events based on session data
+        events.push({
+          id: sessionId, // Unique identifier for the event
+          date: date,
+          sortDate: new Date(`${date} ${startAt}`),
+          title: `Séance Privé - Salle ${salleDetails}`, // Event title combining group and class details
+          start: startAt, // Combine date and time for start
+          end: endAt, // Combine date and time for end
+          isPaid: session?.studentsInPrivateSession?.isPaid,
+          type: "private",
           // Add other event properties as needed
         });
       }
@@ -353,6 +393,22 @@ const getSessionAttendanceRecordingForTeacher = async (req, res, next) => {
             },
           ],
         },
+        {
+          model: db.privateSession,
+          required: false,
+          through: {
+            model: db.teachersInPrivateSession,
+            attributes: ["isAttended", "isPaid"], // Include the isPaid attribute
+            where: {
+              isAttended: true,
+            },
+          },
+          include: {
+            model: db.class,
+            attributes: ["ID_ROWID", "className"],
+            required: false,
+          },
+        },
       ],
     });
     // Prepare session attendance recording data
@@ -386,6 +442,29 @@ const getSessionAttendanceRecordingForTeacher = async (req, res, next) => {
           prog: { id: session.groupe.program.ID_ROWID, name: progDetails },
           numberOfAttendees:
             session?.teacherAttendanceRecording?.NumberOfAttendees || 0,
+          // Add other event properties as needed
+        });
+      }
+    });
+    teacherData?.privateSessions.forEach((session) => {
+      // Extract session details
+      const { ID_ROWID: sessionId, startAt, endAt, date } = session;
+      if (new Date(`${date} ${endAt}`) < currentDate) {
+        // Extract class details if available
+        const salleDetails = session.class
+          ? session.class.className
+          : "non défini";
+
+        // Create events based on session data
+        events.push({
+          id: sessionId, // Unique identifier for the event
+          date: date,
+          sortDate: new Date(`${date} ${startAt}`),
+          title: `Séance Privé - Salle ${salleDetails}`, // Event title combining group and class details
+          start: startAt, // Combine date and time for start
+          end: endAt, // Combine date and time for end
+          isPaid: session?.teachersInPrivateSession?.isPaid,
+          type: "private",
           // Add other event properties as needed
         });
       }

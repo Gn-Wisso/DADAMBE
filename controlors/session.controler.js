@@ -361,7 +361,7 @@ const getAllSessionsForSalle = async (req, res, next) => {
             {
               model: db.person,
               as: "personProfile2",
-              attributes: ["firstName", "lastName"],
+              attributes: ["firstName", "lastName", "dateOfBirth"],
             },
           ],
           attributes: ["ID_ROWID"],
@@ -374,7 +374,7 @@ const getAllSessionsForSalle = async (req, res, next) => {
             {
               model: db.person,
               as: "personProfile2",
-              attributes: ["firstName", "lastName"],
+              attributes: ["firstName", "lastName", "dateOfBirth"],
             },
           ],
           attributes: ["ID_ROWID"],
@@ -409,11 +409,12 @@ const getAllSessionsForSalle = async (req, res, next) => {
     });
     privateSessions.forEach((session) => {
       // Extract session details
-      const { ID_ROWID: sessionId, startAt, endAt, date, lib } = session;
+      const { ID_ROWID: sessionId, startAt, endAt, date, lib, prix } = session;
       // Extract student data
       const students = session.students.map((student) => ({
         id: student.ID_ROWID,
         name: `${student.personProfile2.firstName} ${student.personProfile2.lastName}`,
+        dateOfBirth: student.personProfile2.dateOfBirth,
         // Add other student properties as needed
       }));
 
@@ -421,6 +422,7 @@ const getAllSessionsForSalle = async (req, res, next) => {
       const teachers = session.teachers.map((teacher) => ({
         id: teacher.ID_ROWID,
         name: `${teacher.personProfile2.firstName} ${teacher.personProfile2.lastName}`,
+        dateOfBirth: teacher.personProfile2.dateOfBirth,
         // Add other teacher properties as needed
       }));
       // Create events based on session data
@@ -432,6 +434,7 @@ const getAllSessionsForSalle = async (req, res, next) => {
         type: "private",
         students: students,
         teachers: teachers,
+        prix,
         // Add other event properties as needed
       });
     });
@@ -482,7 +485,7 @@ const getAllSessions = async (req, res, next) => {
             {
               model: db.person,
               as: "personProfile2",
-              attributes: ["firstName", "lastName"],
+              attributes: ["firstName", "lastName", "dateOfBirth"],
             },
           ],
           attributes: ["ID_ROWID"],
@@ -495,7 +498,7 @@ const getAllSessions = async (req, res, next) => {
             {
               model: db.person,
               as: "personProfile2",
-              attributes: ["firstName", "lastName"],
+              attributes: ["firstName", "lastName", "dateOfBirth"],
             },
           ],
           attributes: ["ID_ROWID"],
@@ -531,16 +534,18 @@ const getAllSessions = async (req, res, next) => {
         start: new Date(`${date} ${startAt}`), // Combine date and time for start
         end: new Date(`${date} ${endAt}`), // Combine date and time for end
         groupID: session.groupID,
+        type: "normal",
         // Add other event properties as needed
       });
     });
     privateSessions.forEach((session) => {
       // Extract session details
-      const { ID_ROWID: sessionId, startAt, endAt, date, lib } = session;
+      const { ID_ROWID: sessionId, startAt, endAt, date, lib, prix } = session;
       // Extract student data
       const students = session.students.map((student) => ({
         id: student.ID_ROWID,
         name: `${student.personProfile2.firstName} ${student.personProfile2.lastName}`,
+        dateOfBirth: student.personProfile2.dateOfBirth,
         // Add other student properties as needed
       }));
 
@@ -548,6 +553,7 @@ const getAllSessions = async (req, res, next) => {
       const teachers = session.teachers.map((teacher) => ({
         id: teacher.ID_ROWID,
         name: `${teacher.personProfile2.firstName} ${teacher.personProfile2.lastName}`,
+        dateOfBirth: teacher.personProfile2.dateOfBirth,
         // Add other teacher properties as needed
       }));
       // salle data
@@ -563,6 +569,7 @@ const getAllSessions = async (req, res, next) => {
         type: "private",
         students: students,
         teachers: teachers,
+        prix,
         // Add other event properties as needed
       });
     });
@@ -627,7 +634,20 @@ const getAllSessionsForStudent = async (req, res, next) => {
                 {
                   model: db.person,
                   as: "personProfile2",
-                  attributes: ["firstName", "lastName"],
+                  attributes: ["firstName", "lastName", "dateOfBirth"],
+                },
+              ],
+              attributes: ["ID_ROWID"],
+              through: { attributes: [] }, // Exclude association attributes
+            },
+            {
+              model: db.student,
+              as: "students",
+              include: [
+                {
+                  model: db.person,
+                  as: "personProfile2",
+                  attributes: ["firstName", "lastName", "dateOfBirth"],
                 },
               ],
               attributes: ["ID_ROWID"],
@@ -663,6 +683,7 @@ const getAllSessionsForStudent = async (req, res, next) => {
               start: new Date(`${date} ${startAt}`), // Combine date and time for start
               end: new Date(`${date} ${endAt}`), // Combine date and time for end
               groupID: groupe.ID_ROWID,
+              type: "normal",
               // Add other event properties as needed
             });
           });
@@ -681,11 +702,18 @@ const getAllSessionsForStudent = async (req, res, next) => {
           lib,
           class: classDetails,
         } = session;
-
+        // Extract student data
+        const students = session.students.map((student) => ({
+          id: student.ID_ROWID,
+          name: `${student.personProfile2.firstName} ${student.personProfile2.lastName}`,
+          dateOfBirth: student.personProfile2.dateOfBirth,
+          // Add other student properties as needed
+        }));
         // Extract teacher data
         const teachers = session.teachers.map((teacher) => ({
           id: teacher.ID_ROWID,
           name: `${teacher.personProfile2.firstName} ${teacher.personProfile2.lastName}`,
+          dateOfBirth: teacher.personProfile2.dateOfBirth,
           // Add other teacher properties as needed
         }));
         // Create events based on private session data
@@ -697,6 +725,8 @@ const getAllSessionsForStudent = async (req, res, next) => {
           start: new Date(`${date} ${startAt}`), // Combine date and time for start
           end: new Date(`${date} ${endAt}`), // Combine date and time for end
           teachers: teachers,
+          students,
+          type: "private",
           // Add other event properties as needed
         });
       });
@@ -867,6 +897,7 @@ const getSessionsInLast4Days = async (req, res, next) => {
         end: endAt, // Combine date and time for end
         group: { id: session.groupID, name: groupeDetails },
         prog: { id: session.groupe.progID, name: progDetails },
+        type: "normal",
         // Add other event properties as needed
       });
     });
@@ -889,7 +920,7 @@ const getSessionsInLast4Days = async (req, res, next) => {
             {
               model: db.person,
               as: "personProfile2",
-              attributes: ["firstName", "lastName"],
+              attributes: ["firstName", "lastName", "dateOfBirth"],
             },
           ],
           attributes: ["ID_ROWID"],
@@ -902,7 +933,7 @@ const getSessionsInLast4Days = async (req, res, next) => {
             {
               model: db.person,
               as: "personProfile2",
-              attributes: ["firstName", "lastName"],
+              attributes: ["firstName", "lastName", "dateOfBirth"],
             },
           ],
           attributes: ["ID_ROWID"],
@@ -919,36 +950,40 @@ const getSessionsInLast4Days = async (req, res, next) => {
         date,
         lib,
         class: classDetails,
+        prix,
       } = session;
-      if (new Date(`${date} ${endAt}`) < currentDate) {
-        // Create events based on private session data
-        // Extract student data
-        const students = session.students.map((student) => ({
-          id: student.ID_ROWID,
-          name: `${student.personProfile2.firstName} ${student.personProfile2.lastName}`,
-          // Add other student properties as needed
-        }));
+      // Create events based on private session data
+      // Extract student data
+      const students = session.students.map((student) => ({
+        id: student.ID_ROWID,
+        name: `${student.personProfile2.firstName} ${student.personProfile2.lastName}`,
+        dateOfBirth: student.personProfile2.dateOfBirth,
+        // Add other student properties as needed
+      }));
 
-        // Extract teacher data
-        const teachers = session.teachers.map((teacher) => ({
-          id: teacher.ID_ROWID,
-          name: `${teacher.personProfile2.firstName} ${teacher.personProfile2.lastName}`,
-          // Add other teacher properties as needed
-        }));
-        events.push({
-          id: sessionId, // Unique identifier for the event
-          title: `Private Session - ${lib} - Salle ${
-            classDetails ? classDetails.className : "non défini"
-          }`, // Event title including description and class details
-          start: startAt, // Combine date and time for start
-          end: endAt, // Combine date and time for end
-          teachers,
-          students,
-          type: "private",
-          sortDate: new Date(`${date} ${startAt}`),
-          // Add other event properties as needed
-        });
-      }
+      // Extract teacher data
+      const teachers = session.teachers.map((teacher) => ({
+        id: teacher.ID_ROWID,
+        name: `${teacher.personProfile2.firstName} ${teacher.personProfile2.lastName}`,
+        dateOfBirth: teacher.personProfile2.dateOfBirth,
+        // Add other teacher properties as needed
+      }));
+      events.push({
+        id: sessionId, // Unique identifier for the event
+        title: `Private Session - ${lib} - Salle ${
+          classDetails ? classDetails.className : "non défini"
+        }`, // Event title including description and class details
+        start: startAt, // Combine date and time for start
+        end: endAt, // Combine date and time for end
+        isAchieved: session.isAchieved,
+        date: date,
+        teachers,
+        students,
+        type: "private",
+        sortDate: new Date(`${date} ${startAt}`),
+        prix,
+        // Add other event properties as needed
+      });
     });
     // Sort events by start date in descending order
     events.sort((a, b) => b.sortDate - a.sortDate);
@@ -959,7 +994,7 @@ const getSessionsInLast4Days = async (req, res, next) => {
       code: 200,
     });
   } catch (error) {
-    console.log(error);
+    // console.log(error);
     return res.send({
       message: "Error to fetch sessions",
       code: 500,
@@ -1003,30 +1038,46 @@ const getAllSessionsForTeacher = async (req, res, next) => {
         },
       ],
     });
-    const privateSessions = await db.privateSession.findAll({
+    const teacherData = await db.teacher.findByPk(id, {
       include: [
-        // Include private sessions associated with the student
+        // Include private sessions associated with the teacher
         {
-          model: db.student,
-          as: "students",
+          model: db.privateSession,
+          attributes: ["ID_ROWID", "startAt", "endAt", "date", "lib"],
+          required: false,
           include: [
             {
-              model: db.person,
-              as: "personProfile2",
-              attributes: ["firstName", "lastName"],
+              model: db.teacher,
+              as: "teachers",
+              include: [
+                {
+                  model: db.person,
+                  as: "personProfile2",
+                  attributes: ["firstName", "lastName", "dateOfBirth"],
+                },
+              ],
+              attributes: ["ID_ROWID"],
+              through: { attributes: [] }, // Exclude association attributes
+            },
+            {
+              model: db.student,
+              as: "students",
+              include: [
+                {
+                  model: db.person,
+                  as: "personProfile2",
+                  attributes: ["firstName", "lastName", "dateOfBirth"],
+                },
+              ],
+              attributes: ["ID_ROWID"],
+              through: { attributes: [] }, // Exclude association attributes
+            },
+            {
+              model: db.class,
+              attributes: ["ID_ROWID", "className"],
+              required: false,
             },
           ],
-          attributes: ["ID_ROWID"],
-          through: { attributes: [] }, // Exclude association attributes
-        },
-        {
-          model: db.teacher,
-          where: { ID_ROWID: id }, // Filter by teacher ID
-        },
-        {
-          model: db.class,
-          attributes: ["ID_ROWID", "className"],
-          required: false,
         },
       ],
     });
@@ -1061,7 +1112,7 @@ const getAllSessionsForTeacher = async (req, res, next) => {
         }
       });
     }
-    privateSessions.forEach((session) => {
+    teacherData?.privateSessions.forEach((session) => {
       // Extract session details
       const {
         ID_ROWID: sessionId,
@@ -1070,32 +1121,40 @@ const getAllSessionsForTeacher = async (req, res, next) => {
         date,
         lib,
         class: classDetails,
+        prix,
       } = session;
-      if (new Date(`${date} ${endAt}`) < currentDate) {
-        // Create events based on private session data
-        // Extract student data
-        const students = session.students.map((student) => ({
-          id: student.ID_ROWID,
-          name: `${student.personProfile2.firstName} ${student.personProfile2.lastName}`,
-          // Add other student properties as needed
-        }));
 
-        events.push({
-          id: sessionId, // Unique identifier for the event
-          title: `Private Session - ${lib} - Salle ${
-            classDetails ? classDetails.className : "non défini"
-          }`, // Event title including description and class details
-          start: startAt, // Combine date and time for start
-          end: endAt, // Combine date and time for end
-          teachers,
-          students,
-          type: "private",
-          sortDate: new Date(`${date} ${startAt}`),
-          // Add other event properties as needed
-        });
-      }
+      // Create events based on private session data
+      // Extract student data
+      const students = session.students.map((student) => ({
+        id: student.ID_ROWID,
+        name: `${student.personProfile2.firstName} ${student.personProfile2.lastName}`,
+        dateOfBirth: student.personProfile2.dateOfBirth,
+        // Add other student properties as needed
+      }));
+      // Extract teacher data
+      const teachers = session.teachers.map((teacher) => ({
+        id: teacher.ID_ROWID,
+        name: `${teacher.personProfile2.firstName} ${teacher.personProfile2.lastName}`,
+        dateOfBirth: teacher.personProfile2.dateOfBirth,
+        // Add other teacher properties as needed
+      }));
+
+      events.push({
+        id: sessionId, // Unique identifier for the event
+        title: `Private Session - ${lib} - Salle ${
+          classDetails ? classDetails.className : "non défini"
+        }`, // Event title including description and class details
+        start: new Date(`${date} ${startAt}`),
+        end: new Date(`${date} ${endAt}`),
+        teachers,
+        students,
+        type: "private",
+        prix,
+        // Add other event properties as needed
+      });
     });
-
+    console.log(events);
     return res.send({
       events: events,
       message: "Sessions fetch successfully",
@@ -1146,7 +1205,7 @@ const getAllSessionsInLastDays = async (req, res, next) => {
             {
               model: db.person,
               as: "personProfile2",
-              attributes: ["firstName", "lastName"],
+              attributes: ["firstName", "lastName", "dateOfBirth"],
             },
           ],
           attributes: ["ID_ROWID"],
@@ -1159,7 +1218,7 @@ const getAllSessionsInLastDays = async (req, res, next) => {
             {
               model: db.person,
               as: "personProfile2",
-              attributes: ["firstName", "lastName"],
+              attributes: ["firstName", "lastName", "dateOfBirth"],
             },
           ],
           attributes: ["ID_ROWID"],
@@ -1212,33 +1271,25 @@ const getAllSessionsInLastDays = async (req, res, next) => {
         date,
         lib,
         class: classDetails,
+        prix,
       } = session;
       if (new Date(`${date} ${endAt}`) < currentDate) {
         // Create events based on private session data
-        // Extract student data
-        const students = session.students.map((student) => ({
-          id: student.ID_ROWID,
-          name: `${student.personProfile2.firstName} ${student.personProfile2.lastName}`,
-          // Add other student properties as needed
-        }));
-
-        // Extract teacher data
-        const teachers = session.teachers.map((teacher) => ({
-          id: teacher.ID_ROWID,
-          name: `${teacher.personProfile2.firstName} ${teacher.personProfile2.lastName}`,
-          // Add other teacher properties as needed
-        }));
+        const salleDetails = session.class
+          ? session.class.className
+          : "non défini";
         events.push({
           id: sessionId, // Unique identifier for the event
           title: `Private Session - ${lib} - Salle ${
             classDetails ? classDetails.className : "non défini"
           }`, // Event title including description and class details
+          date: date,
           start: startAt, // Combine date and time for start
           end: endAt, // Combine date and time for end
-          teachers,
-          students,
+          salle: salleDetails,
           type: "private",
           sortDate: new Date(`${date} ${startAt}`),
+          prix,
           // Add other event properties as needed
         });
       }

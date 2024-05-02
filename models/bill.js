@@ -30,6 +30,10 @@ module.exports = function (sequelize, DataTypes) {
       foreignKey: "billD",
       allowNull: false,
     });
+    bill.hasMany(models.studentsInPrivateSession, {
+      foreignKey: "billD",
+      allowNull: false,
+    });
   };
 
   return bill;

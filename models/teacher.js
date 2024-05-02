@@ -63,6 +63,10 @@ module.exports = function (sequelize, DataTypes) {
       through: models.teachersInPrivateSession,
       foreignKey: "teacherID", // Using the correct primary key name for teacher
     });
+    teacher.hasMany(models.salaire, {
+      foreignKey: "teacherID",
+      allowNull: false,
+    });
   };
   return teacher;
 };

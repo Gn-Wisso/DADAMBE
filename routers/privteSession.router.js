@@ -14,4 +14,19 @@ routeSessionPrivate.put(
   jsonParser,
   sessionPrivateController.updateSession
 );
+routeSessionPrivate.post(
+  "/deletePrivateSession",
+  jsonParser,
+  sessionPrivateController.deleteSession
+);
+routeSessionPrivate.get(
+  "/getPrivateSessionAttendanceRecording/:id",
+  jsonParser,
+  sessionPrivateController.getPrivateSessionAttendanceRecording
+);
+routeSessionPrivate.put(
+  "/updatePrivateSessionAttendanceRecording/:id",
+  jsonParser,
+  sessionPrivateController.updatePrivateSessionAttendanceRecording
+);
 module.exports = routeSessionPrivate;

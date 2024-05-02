@@ -22,6 +22,7 @@ const LevelOfStudyRouter = require("./routers/levelOfStudy.router");
 const routeSessionAttRec = require("./routers/sessionAttRec.router");
 const routeStudentPayment = require("./routers/studentPaiment.router");
 const routePrivateSession = require("./routers/privteSession.router");
+const routeTeacherPayment = require("./routers/teacherSalaire.router");
 
 const webSiteRouter = require("./routers/webSite.router");
 const middleware = require("./middleware/connexionVerification");
@@ -55,6 +56,7 @@ app.use("/DADAM_Backend/protected/static", staticRouter);
 app.use("/DADAM_Backend/protected/educationLevel", LevelOfStudyRouter);
 app.use("/DADAM_Backend/protected/sessionAttRec", routeSessionAttRec);
 app.use("/DADAM_Backend/protected/Bills", routeStudentPayment);
+app.use("/DADAM_Backend/protected/Salaire", routeTeacherPayment);
 app.use("/DADAM_Backend/protected/privateSession", routePrivateSession);
 // Function to create initial user if no users exist
 const createInitialUser = async () => {

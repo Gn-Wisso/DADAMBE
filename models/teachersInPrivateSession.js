@@ -29,8 +29,17 @@ module.exports = function (sequelize, DataTypes) {
         type: DataTypes.FLOAT,
         allowNull: true,
       },
+      NumberOfAttendees: {
+        type: DataTypes.BIGINT,
+        allowNull: true,
+      },
     }
   );
-  teachersInPrivateSession.associate = (models) => {};
+  teachersInPrivateSession.associate = (models) => {
+    teachersInPrivateSession.belongsTo(models.salaire, {
+      foreignKey: "salaireID",
+      allowNull: false,
+    });
+  };
   return teachersInPrivateSession;
 };
