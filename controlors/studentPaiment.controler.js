@@ -3,7 +3,7 @@ const seq = require("sequelize");
 const Op = seq.Op;
 require("dotenv").config();
 
-const getStudentBills = async (req, res, next) => {
+const getStudentBills = async (req, res) => {
   try {
     const { id } = req.params; // student id
     // Check if the necessary data (title) is provided
@@ -58,19 +58,37 @@ const getStudentBills = async (req, res, next) => {
               required: false,
               through: {
                 model: db.studentsInPrivateSession,
-                attributes: ["isAttended", "isPaid", "amount", "billD"], // Include the isPaid attribute
+                attributes: ["isAttended", "isPaid", "amount", "billD"],
                 where: {
                   isAttended: true,
-                  isPaid: false,
+                  isPaid: true,
                 },
               },
+              include: [
+                {
+                  model: db.teacher,
+                  attributes: ["ID_ROWID"],
+                  required: false,
+                  include: [
+                    {
+                      model: db.person,
+                      attributes: ["firstName", "lastName"],
+                      as:"personProfile2",
+                      required: false,
+                    },
+                  ],
+                },
+              ],
             },
           ],
         },
       ],
     });
-
+    
+    
     data.sort((a, b) => b.createdAt - a.createdAt);
+
+    console.log(data);
     return res.send({
       message: `Student Bills is fetch successfully.`,
       bills: data,
@@ -153,6 +171,8 @@ const getUnpaidBills = async (req, res, next) => {
     studentData?.sessions.forEach((session) => {
       // Extract session details
       const { ID_ROWID: sessionId, startAt, endAt, date } = session;
+            console.log(new Date(`${date} ${endAt}`) < currentDate)
+
       if (new Date(`${date} ${endAt}`) < currentDate) {
         // Extract class details if available
         const progDetails =
@@ -179,11 +199,10 @@ const getUnpaidBills = async (req, res, next) => {
         });
       }
     });
-
     studentData?.privateSessions.forEach((session) => {
       // Extract session details
       const { ID_ROWID: sessionId, startAt, endAt, date, prix } = session;
-      if (new Date(`${date} ${endAt}`) < currentDate) {
+    
         // Create events based on session data
         events.push({
           id: `private_${sessionId}`, // Unique identifier for the event
@@ -191,16 +210,16 @@ const getUnpaidBills = async (req, res, next) => {
           sortDate: new Date(`${date} ${startAt}`),
           start: startAt, // Combine date and time for start
           end: endAt, // Combine date and time for end
-          prix: session.prix,
+          prix: prix,
           isPaid: session?.studentsInPrivateSession?.isPaid,
           isChecked: true,
           type: "private",
           // Add other event properties as needed
         });
-      }
+      
     });
     // Group events by program ID
-
+console.log(events);
     const groupedEvents = events.reduce((acc, event) => {
       if (event.type === "normal") {
         const { id, name, prix, type } = event.prog;
@@ -343,7 +362,7 @@ const payStudentBillsMultiMode = async (req, res, next) => {
           {
             isPaid: true,
             amount: records.prix,
-            billID: bill.ID_ROWID,
+            billD: bill.ID_ROWID,
           },
           {
             where: {
