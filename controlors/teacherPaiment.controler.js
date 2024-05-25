@@ -313,9 +313,9 @@ const getUnpaidSalaire = async (req, res, next) => {
 const payTeacherSalaire = async (req, res, next) => {
   try {
     const { teacherID, paimentRecord, total } = req.body.data; // student id
-    const bill = await db.bill.create({
+    const salaire = await db.salaire.create({
       totalAmount: total,
-      studentID: studentID,
+      teacherID: teacherID,
     });
     for (const key in paimentRecord) {
       const records = paimentRecord[key];
