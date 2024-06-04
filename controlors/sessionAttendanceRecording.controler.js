@@ -374,7 +374,6 @@ const getSessionAttendanceRecordingForTeacher = async (req, res, next) => {
           required: false,
           through: {
             model: db.teacherAttendanceRecording,
-            attributes: ["NumberOfAttendees"], // Include any other relevant attributes
           },
           include: [
             {
@@ -443,6 +442,7 @@ const getSessionAttendanceRecordingForTeacher = async (req, res, next) => {
           numberOfAttendees:
             session?.teacherAttendanceRecording?.NumberOfAttendees || 0,
           // Add other event properties as needed
+          isPaid: session?.teacherAttendanceRecording?.isPaid,
         });
       }
     });

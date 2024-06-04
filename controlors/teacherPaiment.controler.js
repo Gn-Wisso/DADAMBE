@@ -1,5 +1,6 @@
 const db = require("../models");
 const seq = require("sequelize");
+const salaire = require("../models/salaire");
 const Op = seq.Op;
 require("dotenv").config();
 
@@ -21,106 +22,17 @@ const getTeacherSalaires = async (req, res, next) => {
 
     const salaireData = await Promise.all(
       data.map(async (salaire) => {
-        const extraData = await db.teacher.findByPk(id, {
-          include: [
-            {
-              model: db.groupe,
-              attributes: ["ID_ROWID", "GroupeName"],
-              include: [
-                {
-                  model: db.program,
-                  attributes: ["ID_ROWID", "title"],
-                  required: false,
-                },
-                {
-                  model: db.session,
-                  attributes: ["ID_ROWID"],
-
-                  include: {
-                    model: db.teacher,
-                    where: { ID_ROWID: id },
-                    attributes: ["ID_ROWID"],
-                    through: {
-                      model: db.teacherAttendanceRecording,
-                      where: {
-                        isPaid: true,
-                        salaireID: salaire.ID_ROWID,
-                        teacherID: salaire.teacherID,
-                      },
-                    },
-                  },
-                },
-              ],
-              required: false,
-            },
-            {
-              model: db.privateSession,
-              required: false,
-              attributes: ["ID_ROWID"],
-              include: {
-                model: db.teacher,
-                attributes: ["ID_ROWID"],
-                where: { ID_ROWID: id },
-                through: {
-                  model: db.teachersInPrivateSession,
-                  where: {
-                    isAttended: true,
-                    isPaid: true,
-                    salaireID: salaire.ID_ROWID,
-                    teacherID: id,
-                  },
-                },
-              },
-            },
-          ],
-        });
-
-        const normalSessions = extraData?.groupes
-          .map((groupe) => {
-            if (groupe.sessions.length !== 0) {
-              return {
-                title: `Programme ${groupe.program.title}`,
-                nmbSessions: groupe.sessions.length,
-                sessions: groupe.sessions.map((session) => ({
-                  amountByStudent:
-                    session.teacherAttendanceRecording.amountByStudent,
-                  NumberOfAttendees:
-                    session.teacherAttendanceRecording.NumberOfAttendees,
-                  totalAmount: session.teacherAttendanceRecording.totalAmount,
-                })),
-              };
-            }
-          })
-          .filter(Boolean);
-        const privateSessions = extraData?.privateSessions
-          .map((session) => {
-            return {
-              title: `Private Session`,
-              nmbSessions: 1,
-              sessions: [
-                {
-                  amountByStudent:
-                    session.teachersInPrivateSession.amountByStudent,
-                  NumberOfAttendees:
-                    session.teachersInPrivateSession.NumberOfAttendees,
-                  totalAmount: session.teachersInPrivateSession.totalAmount,
-                },
-              ],
-            };
-          })
-          .filter(Boolean);
         return {
           id: salaire.ID_ROWID,
           totalAmount: salaire.totalAmount,
           date: salaire.createdAt,
-          sessions: normalSessions + privateSessions,
         };
       })
     );
 
     return res.status(200).json({
       message: `Teacher Bills fetched successfully.`,
-      bills: salaireData,
+      salaire: salaireData,
       code: 200,
     });
   } catch (error) {
@@ -191,12 +103,20 @@ const getUnpaidSalaire = async (req, res, next) => {
                 teacherID: id,
               },
             },
+          ],
+          include: [
             {
-              model: db.studentsInPrivateSession,
-              where: {
-                isAttended: true,
+              model: db.student, // Include student details
+              required: false,
+              through: {
+                model: db.studentsInPrivateSession,
+                required: true,
+                where: {
+                  isAttended: true,
+                },
+                required: false,
+                attributes: ["ID_ROWID", "isPaid"], // Include specific attributes
               },
-              attributes: ["ID_ROWID"], // Include the isPaid attribute
             },
           ],
         },
@@ -205,50 +125,58 @@ const getUnpaidSalaire = async (req, res, next) => {
     const events = [];
     const currentDate = new Date();
     currentDate.setHours(0, 0, 0, 0);
+
     teacherData?.sessions.forEach((session) => {
-      // Extract session details
-      const { ID_ROWID: sessionId, startAt, endAt, date } = session;
-      if (new Date(`${date} ${endAt}`) < currentDate) {
-        // Extract class details if available
-        const progDetails =
-          session.groupe && session.groupe.program
-            ? session.groupe.program.title
-            : "non défini";
-        // Create events based on session data
-        events.push({
-          id: `normal_${sessionId}`, // Unique identifier for the event
-          title: progDetails,
-          programID: session.groupe.program.ID_ROWID,
-          date: date,
-          sortDate: new Date(`${date} ${startAt}`),
-          start: startAt,
-          end: endAt,
-          isPaid: false,
-          isChecked: true,
-          NumberOfAttendees: session?.students?.length,
-          type: "normal",
-          // Add other event properties as needed
-        });
+      const data = session?.teacherAttendanceRecording;
+      if (data.isPaid === false && data.teacherID === Number(id)) {
+        // Extract session details
+        const { ID_ROWID: sessionId, startAt, endAt, date } = session;
+        if (new Date(`${date} ${endAt}`) < currentDate) {
+          // Extract class details if available
+          const progDetails =
+            session.groupe && session.groupe.program
+              ? session.groupe.program.title
+              : "non défini";
+          // Create events based on session data
+          events.push({
+            id: `normal_${sessionId}`, // Unique identifier for the event
+            title: progDetails,
+            programID: session.groupe.program.ID_ROWID,
+            date: date,
+            sortDate: new Date(`${date} ${startAt}`),
+            start: startAt,
+            end: endAt,
+            isPaid: false,
+            isChecked: true,
+            NumberOfAttendees: session?.students?.length,
+            type: "normal",
+            // Add other event properties as needed
+          });
+        }
       }
     });
 
     teacherData?.privateSessions.forEach((session) => {
       // Extract session details
-      const { ID_ROWID: sessionId, startAt, endAt, date } = session;
-      if (new Date(`${date} ${endAt}`) < currentDate) {
-        // Create events based on session data
-        events.push({
-          id: `private_${sessionId}`, // Unique identifier for the event
-          date: date,
-          sortDate: new Date(`${date} ${startAt}`),
-          start: startAt,
-          end: endAt,
-          isPaid: false,
-          isChecked: true,
-          NumberOfAttendees: session.studentsInPrivateSession.length,
-          type: "private",
-          // Add other event properties as needed
-        });
+      const data = session?.teachersInPrivateSession;
+
+      if (data.isPaid === false && data.teacherID === Number(id)) {
+        const { ID_ROWID: sessionId, startAt, endAt, date } = session;
+        if (new Date(`${date} ${endAt}`) < currentDate) {
+          // Create events based on session data
+          events.push({
+            id: `private_${sessionId}`, // Unique identifier for the event
+            date: date,
+            sortDate: new Date(`${date} ${startAt}`),
+            start: startAt,
+            end: endAt,
+            isPaid: false,
+            isChecked: true,
+            NumberOfAttendees: session.students.length || 0,
+            type: "private",
+            // Add other event properties as needed
+          });
+        }
       }
     });
     // Group events by program ID
@@ -317,96 +245,61 @@ const payTeacherSalaire = async (req, res, next) => {
       totalAmount: total,
       teacherID: teacherID,
     });
+    console.log(
+      ".................................//////////////////////////5555555555555"
+    );
+
     for (const key in paimentRecord) {
       const records = paimentRecord[key];
+      console.log(records);
       /** create the bills */
       // Creating a new payment record in the database
-      if (records.eventT === "normal") {
-        const newPayment = await db.payment.create({
-          montant: records.prix,
-          progID: records.id, // id prog
-          StudentID: studentID,
-        });
-        if (records.type == "Total") {
-          if (records.isChecked) {
-            /**  insert the records */
-            /**     in paymentTotalMode */
-            await db.paymentTotalMode.create({
-              amount: records.prix,
-              progID: records.id, // id prog
-              billD: bill.ID_ROWID,
-            });
-            for (const event of records.events) {
-              /** change the studentAttendanceRecording isPaid field to true */
-              const data = await db.studentAttendanceRecording.update(
-                {
-                  isPaid: true,
-                },
-                {
-                  where: {
-                    sessionID: event.id
-                      .replace("normal_", "")
-                      .replace("private_", ""),
-                    studentID: studentID,
-                  },
-                }
-              );
-            }
-          }
-        } else {
-          for (const event of records.events) {
-            /** change the studentAttendanceRecording isPaid field to true */
-            if (event.isChecked) {
-              await db.studentAttendanceRecording.update(
-                {
-                  isPaid: true,
-                },
-                {
-                  where: {
-                    sessionID: event
-                      .idreplace("normal_", "")
-                      .replace("private_", ""),
-                    studentID: studentID,
-                  },
-                }
-              );
-
-              const data = await db.studentAttendanceRecording.findAll({
+      if (records.type === "normal" && records.isChecked) {
+        for (const event of records.events) {
+          /** change the studentAttendanceRecording isPaid field to true */
+          if (event.isChecked) {
+            const data = await db.teacherAttendanceRecording.update(
+              {
+                isPaid: true,
+                amountByStudent: records.amountByStudent,
+                totalAmount: event.NumberOfAttendees * records.amountByStudent,
+                NumberOfAttendees: event.NumberOfAttendees,
+                salaireID: salaire.ID_ROWID,
+              },
+              {
                 where: {
                   sessionID: event.id
                     .replace("normal_", "")
                     .replace("private_", ""),
-                  studentID: studentID,
+                  teacherID: teacherID,
                 },
-              });
-              /**  insert the records */
-              /**     in paymentSessionMode */
-              await db.paymentSessionMode.create({
-                amount: records.prix,
-                StudentAttRecID: data[0]?.ID_ROWID,
-                billD: bill.ID_ROWID,
-                studentID: studentID,
-              });
-            }
+              }
+            );
           }
         }
-      } else if (records.eventT === "private" && records.isChecked === true) {
-        // update studentsInPrivateSession
-        await db.studentsInPrivateSession.update(
-          {
-            isPaid: true,
-            amount: records.prix,
-            billID: bill.ID_ROWID,
-          },
-          {
-            where: {
-              privateSessionID: records.id
-                .replace("normal_", "")
-                .replace("private_", ""),
-              studentID: studentID,
-            },
+      } else if (records.type === "private" && records.isChecked === true) {
+        for (const event of records.events) {
+          /** change the studentAttendanceRecording isPaid field to true */
+          if (event.isChecked) {
+            const data = await db.teachersInPrivateSession.update(
+              {
+                isPaid: true,
+                amountByStudent: records.amountByStudent,
+                totalAmount: event.NumberOfAttendees * records.amountByStudent,
+                NumberOfAttendees: event.NumberOfAttendees,
+                salaireID: salaire.ID_ROWID,
+              },
+              {
+                where: {
+                  privateSessionID: event.id
+                    .replace("normal_", "")
+                    .replace("private_", ""),
+                  teacherID: teacherID,
+                },
+              }
+            );
           }
-        );
+        }
       }
     }
     return res.send({

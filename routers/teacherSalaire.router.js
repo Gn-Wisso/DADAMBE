@@ -14,9 +14,9 @@ routeTeacherPayment.get(
   jsonParser,
   teacherPaimentController.getUnpaidSalaire
 );
-// routeTeacherPayment.post(
-//   "/payTeacherBillsMultiMode",
-//   jsonParser,
-//   teacherPaimentController.payTeacherBillsMultiMode
-// );
+routeTeacherPayment.post(
+  "/payTeacherSalaire",
+  jsonParser,
+  teacherPaimentController.payTeacherSalaire
+);
 module.exports = routeTeacherPayment;
